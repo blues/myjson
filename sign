@@ -1,0 +1,2 @@
+codesign --force --deep --sign raygo minhub
+
