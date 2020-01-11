@@ -5,9 +5,7 @@
 # we are executing this one that is perpetually in-use.
 
 # Make sure we're in the right directory, which is necessary via cron
-export PATH=$PATH:/usr/local/go/bin
-export GOPATH=$HOME/notehub
-cd $GOPATH/src/notehub
+cd ~/myjson
 
 # Loop forever
 while [ : ]; do
