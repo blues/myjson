@@ -5,24 +5,28 @@
 package main
 
 import (
+	"os"
 	"time"
 )
 
 // Directory in the home directory that will be used for data
-const configDataDirectory = "/json"
-
-// Default amount of time when the device needs to come back to the discovery server for a new handler
-const configSessionTicketExpirationMinutes = (48*24*60)
-
-// TCP port for listener
-const configTCPPort string = ":80"
-
+const configCertDirectoryBase = "/cert/"
+const configDataDirectoryBase = "/json/"
+var configCertDirectory = ""
+var configDataDirectory = ""
 
 // Main service entry point
 func main() {
 
+	// Compute folder locations
+	configCertDirectory = os.Getenv("HOME") + configCertDirectoryBase
+	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
+
     // Spawn the console input handler
     go inputHandler()
+
+    // Init our web request inbound server
+    go HTTPInboundHandler(":80", ":443")
 
 	// Wait forever
     for {
