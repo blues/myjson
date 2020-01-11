@@ -43,6 +43,7 @@ func inputHandler() {
             arg1 = args[1]
             arg1LC = argsLC[1]
         }
+		_ = arg1
 
         arg2 := ""
         arg2LC := ""
@@ -50,6 +51,7 @@ func inputHandler() {
             arg2 = args[2]
             arg2LC = argsLC[2]
         }
+		_ = arg2
 
         messageAfterFirstWord := ""
         if len(args) > 1 {

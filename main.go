@@ -5,7 +5,6 @@
 package main
 
 import (
-	"os"
 	"time"
 )
 
@@ -21,10 +20,6 @@ const configTCPPort string = ":80"
 
 // Main service entry point
 func main() {
-
-    // Initialize callbacks
-	notelib.FileSetStorageLocation(os.Getenv("HOME") + configDataDirectory)
-	notelib.HubSetDiscover(NotehubDiscover)
 
     // Spawn the console input handler
     go inputHandler()
