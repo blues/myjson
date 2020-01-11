@@ -1,4 +1,4 @@
-// Copyright 2017 Inca Roads LLC.  All rights reserved.
+// Copyright 2020 Blues Inc.  All rights reserved.
 // Use of this source code is governed by licenses granted by the
 // copyright holder including that found in the LICENSE file.
 
@@ -11,7 +11,6 @@ import (
     "strings"
     "syscall"
     "os/signal"
-    "github.com/rayozzie/notelib"
 )
 
 func inputHandler() {
@@ -65,9 +64,6 @@ func inputHandler() {
         switch arg0LC {
 
         case "":
-
-        case "debug":
-            notelib.DebugSet(arg1, arg2)
 
         default:
             fmt.Printf("Unrecognized: '%s'\n", message)
