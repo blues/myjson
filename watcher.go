@@ -81,9 +81,7 @@ func watcherGet(watcherID string, timeout time.Duration) (data []byte, err error
 	}
 
 	// Wait with timeout
-	fmt.Printf("OZZIE %s wait\n", watcherID)
 	watcher.event.Wait(timeout)
-	fmt.Printf("OZZIE %s back from wait\n", watcherID)
 
 	// Get the buffer
 	watcherLock.Lock()
