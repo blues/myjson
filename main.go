@@ -10,16 +10,13 @@ import (
 )
 
 // Directory in the home directory that will be used for data
-const configCertDirectoryBase = "/cert/"
-const configDataDirectoryBase = "/json/"
-var configCertDirectory = ""
+const configDataDirectoryBase = "/data/"
 var configDataDirectory = ""
 
 // Main service entry point
 func main() {
 
-	// Compute folder locations
-	configCertDirectory = os.Getenv("HOME") + configCertDirectoryBase
+	// Compute folder location
 	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
 
     // Spawn the console input handler
