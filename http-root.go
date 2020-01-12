@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 	"io/ioutil"
     "net/http"
@@ -30,7 +31,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	target, _ := HTTPArgs(httpReq, "")
 	rspJSON := []byte(method+"("+target+")"+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
     httpRsp.Write(rspJSON)
-
+	fmt.Printf("%s\n", string(rspJSON))
     return
 
 }
