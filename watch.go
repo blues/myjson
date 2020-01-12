@@ -38,12 +38,13 @@ func watch(httpRsp http.ResponseWriter, target string) {
 		// counting on the fact that one or the other will eventually fail when
 		// the HTTP client goes away
 		fmt.Printf("OZZIE %s write\n", watcherID)
-		_, err = httpRsp.Write(append(data, []byte("\n\n")...))
+		data = append(data, []byte("\n\n")...)
+		_, err = httpRsp.Write(data)
 		if err != nil {
 		fmt.Printf("OZZIE %s EXIT from write\n", watcherID)
 			break
 		}
-		fmt.Printf("OZZIE %s back from write\n", watcherID)
+		fmt.Printf("OZZIE %s back from write: %s\n", watcherID, string(data))
 		
 		// This is an obscure but critical function that flushes partial results
 		// back to the client, so that it may display these partial results
@@ -51,7 +52,9 @@ func watch(httpRsp http.ResponseWriter, target string) {
 		f, ok := httpRsp.(http.Flusher)
 		if ok {
 			f.Flush()
+			fmt.Printf("OZZIE %s FLUSHED\n", watcherID)
 		} else {
+			fmt.Printf("%s flush failed\n", watcherID)
 			break
 		}
 
