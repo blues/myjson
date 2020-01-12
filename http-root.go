@@ -33,10 +33,15 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	target, args := HTTPArgs(httpReq, "")
 	target = cleanTarget(target)
 
+	// Process args
+	count, _ := strconv.Atoi(args["count"])
+	if count == 0 {
+		count, _ = strconv.Atoi(args["tail"])
+	}
+	clean, _ := strconv.Atoi(args["clean"])
+
 	// Process appropriately
 	fmt.Printf("%s %s %s\n", time.Now().UTC().Format("2006-01-02T15:04:05Z"), method, target)
-	count, _ := strconv.Atoi(args["count"])
-	clean, _ := strconv.Atoi(args["clean"])
 	if method == "GET" && target == "" {
 		help(httpRsp)
 	} else if method == "GET" && count != 0 {
