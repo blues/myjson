@@ -79,6 +79,7 @@ func tail(target string, count int, clean bool) (data []byte) {
 
 	// Start gathering results in most-recent order
 	numFilenames := len(filenames)
+	appended := 0
 	done := false
 	for i:=numFilenames-1; i>=0; i=i-1 {
 		filename := filepath.Join(targetDir, filenames[i])
@@ -108,8 +109,15 @@ func tail(target string, count int, clean bool) (data []byte) {
 		// Append to the data, noting if we're done
 		for j:=arrayLen-1; j>=0 && !done; j=j-1 {
 			if (len(arrayJSON[j]) > 0) {
-				data = append(arrayJSON[j], data...)
-				if len(data) >= count {
+				thisdata := arrayJSON[j]
+				if len(data) == 0 {
+					data = thisdata
+				} else {
+					thisdata = append(thisdata, []byte("\n")...)
+					data = append(thisdata, data...)
+				}
+				appended = appended+1
+				if appended >= count {
 					done = true
 				}
 			}
