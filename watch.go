@@ -13,6 +13,9 @@ import (
 // Watch a target, "live"
 func watch(httpRsp http.ResponseWriter, target string) {
 
+	// Begin
+	httpRsp.Write([]byte("Now watching " + target + "\n\n"))
+
 	// Generate a unique watcher ID
 	watcherID := watcherCreate(target)
 
