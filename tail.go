@@ -63,7 +63,9 @@ func tail(target string, count int, clean bool) (data []byte) {
 	}
 
 	// Show that we're reading this
-	fmt.Printf("tail %s %d\n", target, count)
+	if (!clean) {
+		fmt.Printf("tail %s %d\n", target, count)
+	}
 
 	// Append to the list of files
 	var filenames []string
