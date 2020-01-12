@@ -21,7 +21,8 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	_ = reqJSON
 
 	// Write reply JSON
-	rspJSON := []byte("howdy "+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
+	target, _ := HTTPArgs(httpReq, "")
+	rspJSON := []byte(target+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
     httpRsp.Write(rspJSON)
 
     return
