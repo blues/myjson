@@ -23,15 +23,25 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
     // Get the body if supplied
     reqJSON, err := ioutil.ReadAll(httpReq.Body)
     if err != nil {
-		reqJSON = []byte("{}")
+		reqJSON = []byte{}
     }
 	_ = reqJSON
 
-	// Write reply JSON
+	// Get the target
 	target, _ := HTTPArgs(httpReq, "")
-	rspJSON := []byte(method+"("+target+")"+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
-    httpRsp.Write(rspJSON)
-	fmt.Printf("%s\n", string(rspJSON))
+
+	// Process appropriately
+	fmt.Printf("%s %s %s\n", time.Now().UTC().Format("2006-01-02T15:04:05Z"), method, target)
+	if method == "GET" && target == "" {
+		help(httpRsp)
+	} else if method == "GET" {
+		show(httpRsp, target)
+	} else if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {
+		receive(httpRsp, target, reqJSON)
+	} else {
+	    httpRsp.Write([]byte(method + " " + target + " ???"))
+	}
+	
     return
 
 }
