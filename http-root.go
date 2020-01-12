@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 	"strings"
+	"strconv"
 	"io/ioutil"
     "net/http"
 )
@@ -29,13 +30,21 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	_ = reqJSON
 
 	// Get the target
-	target, _ := HTTPArgs(httpReq, "")
+	target, args := HTTPArgs(httpReq, "")
 	target = cleanTarget(target)
 
 	// Process appropriately
 	fmt.Printf("%s %s %s\n", time.Now().UTC().Format("2006-01-02T15:04:05Z"), method, target)
+	count, _ := strconv.Atoi(args["count"])
+	clean, _ := strconv.Atoi(args["clean"])
 	if method == "GET" && target == "" {
 		help(httpRsp)
+	} else if method == "GET" && count != 0 {
+		data := tail(target, count, false)
+	    httpRsp.Write(data)
+	} else if method == "GET" && clean != 0 {
+		data := tail(target, clean, true)
+	    httpRsp.Write(data)
 	} else if method == "GET" {
 		watch(httpRsp, target)
 	} else if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {

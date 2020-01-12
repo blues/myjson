@@ -13,6 +13,9 @@ import (
 const configDataDirectoryBase = "/data/"
 var configDataDirectory = ""
 
+// Maximum number of retained posts per target
+const configMaxPosts = 1000
+
 // Main service entry point
 func main() {
 
@@ -25,9 +28,13 @@ func main() {
     // Init our web request inbound server
     go HTTPInboundHandler(":80")
 
-	// Wait forever
+	// Purge hourly
     for {
-        time.Sleep(5 * time.Minute)
+		targets := tailTargets()
+		for _, target := range(targets) {
+			tail(target, configMaxPosts, true)
+		}
+        time.Sleep(60 * time.Minute)
     }
 
 }
