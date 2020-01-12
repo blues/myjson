@@ -5,8 +5,6 @@
 package main
 
 import (
-	"fmt"
-	"time"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -41,7 +39,6 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	clean, _ := strconv.Atoi(args["clean"])
 
 	// Process appropriately
-	fmt.Printf("%s %s %s\n", time.Now().UTC().Format("2006-01-02T15:04:05Z"), method, target)
 	if method == "GET" && target == "" {
 		help(httpRsp)
 	} else if method == "GET" && count != 0 {

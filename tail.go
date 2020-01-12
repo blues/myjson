@@ -62,6 +62,9 @@ func tail(target string, count int, clean bool) (data []byte) {
 		return
 	}
 
+	// Show that we're reading this
+	fmt.Printf("tail %s %d\n", target, count)
+
 	// Append to the list of files
 	var filenames []string
 	for _, file := range files {
@@ -92,7 +95,6 @@ func tail(target string, count int, clean bool) (data []byte) {
 		}
 
 		// Open the file
-		fmt.Printf("OZZIE %s\n", filename)
 		contents, err := ioutil.ReadFile(filename)
 		if err != nil {
 			fmt.Printf("can't read %s: %s\n", filenames[i], err)

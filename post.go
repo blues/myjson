@@ -6,6 +6,7 @@ package main
 
 import (
 	"os"
+	"fmt"
 	"time"
     "net/http"
 	"path/filepath"
@@ -33,6 +34,9 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Show that we're posting
+	fmt.Printf("post %s\n", target)
 
 	// Append to the appropriate object
 	targetDir := filepath.Join(configDataDirectory, target)

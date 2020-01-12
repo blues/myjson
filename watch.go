@@ -5,12 +5,15 @@
 package main
 
 import (
+	"fmt"
 	"time"
     "net/http"
 )
 
 // Watch a target, "live"
 func watch(httpRsp http.ResponseWriter, target string) {
+
+	fmt.Printf("watch %s\n", target)
 
 	// Browser clients buffer output before display UNLESS this is the content type
 	httpRsp.Header().Set("Content-Type", "application/json")
