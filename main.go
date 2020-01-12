@@ -26,7 +26,7 @@ func main() {
     go inputHandler()
 
     // Init our web request inbound server
-    go HTTPInboundHandler(":80", ":443")
+    go HTTPInboundHandler(":80")
 
 	// Wait forever
     for {

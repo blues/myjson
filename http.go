@@ -15,10 +15,8 @@ import (
 	"crypto/x509"
 )
 
-const tlsEnabled = false
-
 // HTTPInboundHandler kicks off inbound messages coming from all sources, then serve HTTP
-func HTTPInboundHandler(port string, portSecure string) {
+func HTTPInboundHandler(port string) {
 
 	// Topics
 	http.HandleFunc("/github", inboundWebGithubHandler)
@@ -27,38 +25,6 @@ func HTTPInboundHandler(port string, portSecure string) {
 	// HTTP
 	fmt.Printf("Now handling inbound HTTP on %s\n", port)
 	go http.ListenAndServe(port, nil)
-
-	// Don't serve TLS for now
-	if (tlsEnabled) {
-
-		// HTTPS
-		fmt.Printf("Now handling inbound HTTPS on %s\n", portSecure)
-
-		// Build TLS context for bidirectional authentication
-		httpsClientCertPool := x509.NewCertPool()
-
-		httpsClientCA, err := ioutil.ReadFile(configCertDirectory + "certifier.pem")
-		if err != nil {
-			fmt.Printf("Error opening service certificate: %v\n", err)
-			return
-		}
-		httpsClientCertPool.AppendCertsFromPEM(httpsClientCA)
-
-		// Build from cert pool
-		tlsConfig := &tls.Config{
-			ClientCAs: httpsClientCertPool,
-			ClientAuth: tls.RequireAndVerifyClientCert,
-		}
-		tlsConfig.BuildNameToCertificate()
-
-		// Serve TLS
-		server := &http.Server {
-			Addr: portSecure,
-			TLSConfig: tlsConfig,
-		}
-		server.ListenAndServeTLS(configCertDirectory + "public.pem", configCertDirectory + "private.pem")
-
-	}
 
 }
 
