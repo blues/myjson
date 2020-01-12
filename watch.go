@@ -9,8 +9,8 @@ import (
     "net/http"
 )
 
-// Show target
-func show(httpRsp http.ResponseWriter, target string) {
+// Watch a target, "live"
+func watch(httpRsp http.ResponseWriter, target string) {
 
 	httpRsp.Write([]byte(time.Now().UTC().Format("2006-01-02T15:04:05Z") + "show " + target))
 	

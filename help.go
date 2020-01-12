@@ -5,14 +5,15 @@
 package main
 
 import (
-	"time"
     "net/http"
 )
+
+const helpText = "http://myjson.live/<any-string> to watch live JSON objects POSTed to that same URL"
 
 // Help handler
 func help(httpRsp http.ResponseWriter) {
 
-	httpRsp.Write([]byte(time.Now().UTC().Format("2006-01-02T15:04:05Z") + "help"))
+	httpRsp.Write([]byte(helpText))
 	
     return
 
