@@ -18,6 +18,7 @@ func HTTPInboundHandler(port string) {
 	// Topics
 	http.HandleFunc("/github", inboundWebGithubHandler)
 	http.HandleFunc("/ping", inboundWebPingHandler)
+	http.HandleFunc("/", inboundWebRootHandler)
 
 	// HTTP
 	fmt.Printf("Now handling inbound HTTP on %s\n", port)
