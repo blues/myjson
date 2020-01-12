@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
     "net/http"
 )
@@ -33,10 +34,13 @@ func watch(httpRsp http.ResponseWriter, target string) {
 		// Write either the accumulated notification text, or the idle message,
 		// counting on the fact that one or the other will eventually fail when
 		// the HTTP client goes away
+		fmt.Printf("OZZIE %s write\n", watcherID)
 		_, err = httpRsp.Write(append(data, []byte("\n\n")...))
 		if err != nil {
+		fmt.Printf("OZZIE %s EXIT from write\n", watcherID)
 			break
 		}
+		fmt.Printf("OZZIE %s back from write\n", watcherID)
 		
 		// This is an obscure but critical function that flushes partial results
 		// back to the client, so that it may display these partial results
