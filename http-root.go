@@ -13,6 +13,12 @@ import (
 // Root handler
 func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
+    // Process the request URI, looking for things that will indicate "dev"
+	method := httpReq.Method
+    if method == "" {
+        method = "GET"
+    }
+	
     // Get the body if supplied
     reqJSON, err := ioutil.ReadAll(httpReq.Body)
     if err != nil {
@@ -22,7 +28,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Write reply JSON
 	target, _ := HTTPArgs(httpReq, "")
-	rspJSON := []byte(target+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
+	rspJSON := []byte(method+"("+target+")"+time.Now().UTC().Format("2006-01-02T15:04:05Z"))
     httpRsp.Write(rspJSON)
 
     return
