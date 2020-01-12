@@ -28,11 +28,13 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	payloadJSON = append(payloadJSON, []byte("\n")...)
 	payloadJSONIndented, err := json.MarshalIndent(payloadObject, "", "    ")
 	if err != nil {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	payloadJSONIndented = append(payloadJSONIndented, []byte("\n\n")...)
 
 	// Append to the appropriate object
 	targetDir := filepath.Join(configDataDirectory, target)
@@ -57,7 +59,6 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
     }
-    return
 
 	// Send the intended json to the live monitor
 	fmt.Printf("%s\n", string(payloadJSONIndented))

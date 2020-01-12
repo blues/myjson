@@ -50,7 +50,6 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 // Clean a target so that it contains only the chars legal in a filename
 func cleanTarget(in string) (out string) {
-	out = in
 	for _, r := range strings.ToLower(in) {
 		c := string(r)
 		if (c >= "a" && c <= "z") || (c >= "0" && c <= "9") || (c == "_" || c == "-") {
