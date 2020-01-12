@@ -10,9 +10,6 @@ import (
 	"strings"
 	"net/http"
 	"net/url"
-	"io/ioutil"
-	"crypto/tls"
-	"crypto/x509"
 )
 
 // HTTPInboundHandler kicks off inbound messages coming from all sources, then serve HTTP
