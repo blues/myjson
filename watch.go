@@ -14,6 +14,7 @@ import (
 func watch(httpRsp http.ResponseWriter, target string) {
 
 	// Begin
+	httpRsp.Header().Set("Content-Type", "application/json")
 	httpRsp.Write([]byte("Now watching " + target + "\n\n"))
 
 	// Generate a unique watcher ID
@@ -21,6 +22,18 @@ func watch(httpRsp http.ResponseWriter, target string) {
 
 	// Data watching loop
 	for {
+		
+		// This is an obscure but critical function that flushes partial results
+		// back to the client, so that it may display these partial results
+		// immediately rather than wait until the end of the transaction.
+		f, ok := httpRsp.(http.Flusher)
+		if ok {
+			f.Flush()
+			fmt.Printf("OZZIE %s FLUSHED\n", watcherID)
+		} else {
+			fmt.Printf("%s flush failed\n", watcherID)
+			break
+		}
 
 		// Get more data from the watcher, using a timeout computed by trial and
 		// error as a reasonable amount of time to catch an error on the Write
@@ -45,18 +58,6 @@ func watch(httpRsp http.ResponseWriter, target string) {
 			break
 		}
 		fmt.Printf("OZZIE %s back from write: %s\n", watcherID, string(data))
-		
-		// This is an obscure but critical function that flushes partial results
-		// back to the client, so that it may display these partial results
-		// immediately rather than wait until the end of the transaction.
-		f, ok := httpRsp.(http.Flusher)
-		if ok {
-			f.Flush()
-			fmt.Printf("OZZIE %s FLUSHED\n", watcherID)
-		} else {
-			fmt.Printf("%s flush failed\n", watcherID)
-			break
-		}
 
 	}	
 
