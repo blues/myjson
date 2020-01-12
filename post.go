@@ -6,7 +6,6 @@ package main
 
 import (
 	"os"
-	"fmt"
 	"time"
     "net/http"
 	"path/filepath"
@@ -60,8 +59,9 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		return
     }
 
-	// Send the intended json to the live monitor
-	fmt.Printf("%s\n", string(payloadJSONIndented))
+	// Send the intended json to the live monitor, if anyone is watching
+	watcherPut(target, payloadJSONIndented)
+
 	return
 
 }
