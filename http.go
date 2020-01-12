@@ -1,4 +1,4 @@
-// Copyright Blues Inc.  All rights reserved. 
+// Copyright Blues Inc.	 All rights reserved.
 // Use of this source code is governed by licenses granted by the
 // copyright holder including that found in the LICENSE file.
 
@@ -8,50 +8,57 @@ package main
 import (
 	"fmt"
 	"strings"
-    "net/http"
+	"net/http"
 	"net/url"
-    "io/ioutil"
-    "crypto/tls"
-    "crypto/x509"
+	"io/ioutil"
+	"crypto/tls"
+	"crypto/x509"
 )
+
+const tlsEnabled = false
 
 // HTTPInboundHandler kicks off inbound messages coming from all sources, then serve HTTP
 func HTTPInboundHandler(port string, portSecure string) {
 
 	// Topics
-    http.HandleFunc("/github", inboundWebGithubHandler)
-    http.HandleFunc("/ping", inboundWebPingHandler)
+	http.HandleFunc("/github", inboundWebGithubHandler)
+	http.HandleFunc("/ping", inboundWebPingHandler)
 
 	// HTTP
-    fmt.Printf("Now handling inbound HTTP on %s\n", port)
-    go http.ListenAndServe(port, nil)
+	fmt.Printf("Now handling inbound HTTP on %s\n", port)
+	go http.ListenAndServe(port, nil)
 
-	// HTTPS
-    fmt.Printf("Now handling inbound HTTPS on %s\n", portSecure)
+	// Don't serve TLS for now
+	if (tlsEnabled) {
 
-	// Build TLS context for bidirectional authentication
-    httpsClientCertPool := x509.NewCertPool()
+		// HTTPS
+		fmt.Printf("Now handling inbound HTTPS on %s\n", portSecure)
 
-    httpsClientCA, err := ioutil.ReadFile(configCertDirectory + "certifier.pem")
-    if err != nil {
-        fmt.Printf("Error opening service certificate: %v\n", err)
-        return
-    }
-    httpsClientCertPool.AppendCertsFromPEM(httpsClientCA)
+		// Build TLS context for bidirectional authentication
+		httpsClientCertPool := x509.NewCertPool()
 
-	// Build from cert pool
-    tlsConfig := &tls.Config{
-        ClientCAs: httpsClientCertPool,
-        ClientAuth: tls.RequireAndVerifyClientCert,
-    }
-    tlsConfig.BuildNameToCertificate()
+		httpsClientCA, err := ioutil.ReadFile(configCertDirectory + "certifier.pem")
+		if err != nil {
+			fmt.Printf("Error opening service certificate: %v\n", err)
+			return
+		}
+		httpsClientCertPool.AppendCertsFromPEM(httpsClientCA)
 
-	// Serve TLS
-	server := &http.Server {
-		Addr: portSecure,
-		TLSConfig: tlsConfig,
+		// Build from cert pool
+		tlsConfig := &tls.Config{
+			ClientCAs: httpsClientCertPool,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		}
+		tlsConfig.BuildNameToCertificate()
+
+		// Serve TLS
+		server := &http.Server {
+			Addr: portSecure,
+			TLSConfig: tlsConfig,
+		}
+		server.ListenAndServeTLS(configCertDirectory + "public.pem", configCertDirectory + "private.pem")
+
 	}
-    server.ListenAndServeTLS(configCertDirectory + "public.pem", configCertDirectory + "private.pem")
 
 }
 
@@ -93,6 +100,6 @@ func HTTPArgs(req *http.Request, topic string) (target string, args map[string]s
 	}
 
 	// Done
-	return 
-	
+	return
+
 }
