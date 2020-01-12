@@ -7,7 +7,7 @@
 
 set -v
 git reset --hard
-git pull git@github.com:blues/myjson
+git pull
 go get -u
 go build
 
