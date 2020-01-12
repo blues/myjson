@@ -33,7 +33,6 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	payloadJSONIndented = append(payloadJSONIndented, []byte("\n\n")...)
 
 	// Append to the appropriate object
 	targetDir := filepath.Join(configDataDirectory, target)
