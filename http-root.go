@@ -52,6 +52,10 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		emit, _ := strconv.Atoi(args["emit"])
 		if emit != 0 {
 			httpRsp.Write([]byte(strings.Repeat(" ", emit)+"\n"))
+			f, ok := httpRsp.(http.Flusher)
+			if ok {
+				f.Flush()
+			}
 		}
 		// Watch
 		watch(httpRsp, target)
