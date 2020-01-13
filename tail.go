@@ -179,13 +179,14 @@ func extractBodyText(in []byte) (out []byte) {
 	sn := jobj["sn"].(string)
 	routed := jobj["routed"].(float64)
 	routedDate := time.Unix(int64(routed), 0).Format("01/02")
+	routedTime := time.Unix(int64(routed), 0).Format("15:04")
 	todayDate := time.Now().UTC().Format("01/02")
 	if routedDate == todayDate {
-		routedDate = "today"
+		routedDate = "TODAY"
 	}
 
 	// Create output line
-	out = []byte(routedDate + " " + bodyText + " (" + projectName + " " + sn + ")")
+	out = []byte(routedDate + " " + routedTime + " " + bodyText + " (" + projectName + " / " + sn + ")")
 	return
 	
 }
