@@ -7,6 +7,7 @@ package main
 import (
 	"os"
 	"fmt"
+	"time"
 	"sort"
 	"bytes"
 	"strings"
@@ -176,9 +177,15 @@ func extractBodyText(in []byte) (out []byte) {
 		projectName = project["name"].(string)
 	}
 	sn := jobj["sn"].(string)
+	routed := jobj["routed"].(int64)
+	routedDate := time.Unix(routed, 0).Format("01/02")
+	todayDate := time.Now().UTC().Format("01/02")
+	if routedDate == todayDate {
+		routedDate = "today"
+	}
 
 	// Create output line
-	out = []byte(bodyText + " (" + projectName + " " + sn + ")")
+	out = []byte(routedDate + " " + bodyText + " (" + projectName + " " + sn + ")")
 	return
 	
 }
