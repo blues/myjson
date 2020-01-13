@@ -48,7 +48,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		data := tail(target, clean, true, nil)
 	    httpRsp.Write(data)
 	} else if method == "GET" {
-		watch(httpRsp, target)
+		watch(httpRsp, httpReq, target)
 	} else if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {
 		post(httpRsp, target, reqJSON)
 	} else {
