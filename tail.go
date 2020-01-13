@@ -50,6 +50,7 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 		args = *pargs
 	}
 	bodyText := args["text"] != ""
+	addNewline := args["nl"] != ""
 		
 	
 	// Don't allow purge of certain hard-wired targets
@@ -133,6 +134,9 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 					data = thisdata
 				} else {
 					thisdata = append(thisdata, []byte("\n")...)
+					if (addNewline) {
+						thisdata = append(thisdata, []byte("\n")...)
+					}
 					data = append(thisdata, data...)
 				}
 				// Next
