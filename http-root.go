@@ -42,10 +42,10 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	if method == "GET" && target == "" {
 		help(httpRsp)
 	} else if method == "GET" && count != 0 {
-		data := tail(target, count, false)
+		data := tail(target, count, false, &args)
 	    httpRsp.Write(data)
 	} else if method == "GET" && clean != 0 {
-		data := tail(target, clean, true)
+		data := tail(target, clean, true, nil)
 	    httpRsp.Write(data)
 	} else if method == "GET" {
 		watch(httpRsp, target)

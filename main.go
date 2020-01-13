@@ -32,7 +32,7 @@ func main() {
     for {
 		targets := tailTargets()
 		for _, target := range(targets) {
-			tail(target, configMaxPosts, true)
+			tail(target, configMaxPosts, true, nil)
 		}
         time.Sleep(60 * time.Minute)
     }

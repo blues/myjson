@@ -12,6 +12,7 @@ import (
 	"strings"
 	"io/ioutil"
 	"path/filepath"
+	"encoding/json"
 )
 
 // Enumerate a list of the targets that have been used
@@ -40,8 +41,16 @@ func tailTargets() (targets []string) {
 
 
 // Do a tail of the posted results, optionally cleaning results prior to that tail
-func tail(target string, count int, clean bool) (data []byte) {
+func tail(target string, count int, clean bool, pargs *map[string]string) (data []byte) {
 
+	// Default
+	var args map[string]string
+	if pargs != nil {
+		args = *pargs
+	}
+	bodyText := args["text"] != ""
+		
+	
 	// Don't allow purge of certain hard-wired targets
 	if target == "health" {
 		clean = false;
@@ -114,12 +123,18 @@ func tail(target string, count int, clean bool) (data []byte) {
 		for j:=arrayLen-1; j>=0 && !done; j=j-1 {
 			if (len(arrayJSON[j]) > 0) {
 				thisdata := arrayJSON[j]
+				// Do special processing of data if requested
+				if bodyText {
+					thisdata = extractBodyText(thisdata)
+				}
+				// Place data at the beginning
 				if len(data) == 0 {
 					data = thisdata
 				} else {
 					thisdata = append(thisdata, []byte("\n")...)
 					data = append(thisdata, data...)
 				}
+				// Next
 				appended = appended+1
 				if appended >= count {
 					done = true
@@ -132,4 +147,38 @@ func tail(target string, count int, clean bool) (data []byte) {
 	// Done
 	return
 
+}
+
+// Extract just the "text" item of the body field, with some extra
+func extractBodyText(in []byte) (out []byte) {
+
+	// Default output to input for error returns
+	out = in
+
+	// Unmarshal to an object
+	var jobj map[string]interface{}
+	err := json.Unmarshal(in, &jobj)
+	if err != nil {
+		return
+	}
+
+	// Extract just the field we're interested in
+	var body map[string]interface{}
+	body = jobj["body"].(map[string]interface{})
+	bodyText := ""
+	if body != nil {
+		bodyText = body["text"].(string)
+	}
+	var project map[string]interface{}
+	project = jobj["project"].(map[string]interface{})
+	projectName := ""
+	if project != nil {
+		projectName = project["name"].(string)
+	}
+	sn := jobj["sn"].(string)
+
+	// Create output line
+	out = []byte(bodyText + " (" + projectName + " " + sn + ")")
+	return
+	
 }
