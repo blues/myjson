@@ -48,6 +48,12 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		data := tail(target, clean, true, nil)
 	    httpRsp.Write(data)
 	} else if method == "GET" {
+		// Debug that outputs text to unstick a stuck browser
+		emit, _ := strconv.Atoi(args["emit"])
+		if emit != 0 {
+			httpRsp.Write([]byte(strings.Repeat(" ", emit)+"\n"))
+		}
+		// Watch
 		watch(httpRsp, target)
 	} else if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {
 		post(httpRsp, target, reqJSON)
