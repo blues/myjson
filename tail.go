@@ -180,8 +180,16 @@ func extractBodyText(in []byte) (out []byte) {
 	if project != nil {
 		projectName = project["name"].(string)
 	}
-	sn := jobj["sn"].(string)
-	routed := jobj["routed"].(float64)
+	psn := jobj["sn"]
+	sn := ""
+	if psn != nil {
+		sn = jobj["sn"].(string)
+	}
+	prouted := jobj["routed"]
+	routed := float64(0);
+	if prouted != nil {
+		routed = jobj["routed"].(float64)
+	}
 	routedDate := time.Unix(int64(routed), 0).Format("01/02")
 	routedTime := time.Unix(int64(routed), 0).Format("15:04")
 	todayDate := time.Now().UTC().Format("01/02")
