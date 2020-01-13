@@ -16,7 +16,8 @@ func watch(httpRsp http.ResponseWriter, target string) {
 	fmt.Printf("watch %s\n", target)
 
 	// Browser clients buffer output before display UNLESS this is the content type
-	httpRsp.Header().Set("Content-Type", "application/json")
+//	httpRsp.Header().Set("Content-Type", "application/json")
+	httpRsp.Header().Set("Content-Type", "text/plain")
 
 	// Begin
 	data := []byte(time.Now().UTC().Format("2006-01-02T15:04:05Z") + " watching " + target + "\n")
