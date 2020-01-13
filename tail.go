@@ -186,7 +186,7 @@ func extractBodyText(in []byte) (out []byte) {
 	routedTime := time.Unix(int64(routed), 0).Format("15:04")
 	todayDate := time.Now().UTC().Format("01/02")
 	if routedDate == todayDate {
-		routedDate = "TODAY"
+		todayDate += "*"
 	}
 
 	// Create output line

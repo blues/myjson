@@ -14,8 +14,6 @@ import (
 func watch(httpRsp http.ResponseWriter, httpReq *http.Request, target string) {
 
 	fmt.Printf("watch %s\n", target)
-	ua := httpReq.Header.Get("User-Agent")
-	fmt.Printf("   ua %s\n", ua)
 
 	// Browser clients buffer output before display UNLESS this is the content type
 	httpRsp.Header().Set("Content-Type", "application/json")
