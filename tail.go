@@ -168,28 +168,23 @@ func extractBodyText(in []byte) (out []byte) {
 	}
 
 	// Extract just the field we're interested in
+	var ok bool
 	var body map[string]interface{}
-	body = jobj["body"].(map[string]interface{})
-	bodyText := ""
-	if body != nil {
-		bodyText = body["text"].(string)
+	var bodyText string
+	body, ok = jobj["body"].(map[string]interface{})
+	if ok {
+		bodyText, _ = body["text"].(string)
 	}
 	var project map[string]interface{}
-	project = jobj["project"].(map[string]interface{})
-	projectName := ""
-	if project != nil {
-		projectName = project["name"].(string)
+	var projectName string
+	project, ok = jobj["project"].(map[string]interface{})
+	if ok {
+		projectName, _ = project["name"].(string)
 	}
-	psn := jobj["sn"]
-	sn := ""
-	if psn != nil {
-		sn = jobj["sn"].(string)
-	}
-	prouted := jobj["routed"]
-	routed := float64(0);
-	if prouted != nil {
-		routed = jobj["routed"].(float64)
-	}
+	var sn string
+	sn, _ = jobj["sn"].(string)
+	var routed float64
+	routed, _ = jobj["routed"].(float64)
 	routedDate := time.Unix(int64(routed), 0).Format("01/02")
 	routedTime := time.Unix(int64(routed), 0).Format("15:04")
 	todayDate := time.Now().UTC().Format("01/02")
