@@ -183,6 +183,11 @@ func extractBodyText(in []byte) (out []byte) {
 	}
 	var sn string
 	sn, _ = jobj["sn"].(string)
+	var deviceUID string
+	deviceUID, _ = jobj["device"].(string)
+	if sn == "" {
+		sn = deviceUID
+	}
 	var routed float64
 	routed, _ = jobj["routed"].(float64)
 	routedDate := time.Unix(int64(routed), 0).Format("01/02")
