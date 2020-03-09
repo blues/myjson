@@ -30,7 +30,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
-	fmt.Printf("bad raw target? %s", rawTarget)
+	fmt.Printf("bad raw target? %s", httpReq.RequestURI[:])
 	target := cleanTarget(rawTarget)
 
 	// Exit if just the favicon
