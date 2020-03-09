@@ -5,11 +5,13 @@
 package main
 
 import (
+	"os"
 	"fmt"
 	"strings"
 	"strconv"
 	"io/ioutil"
     "net/http"
+	"path/filepath"
 )
 
 // Root handler
@@ -30,7 +32,6 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
-	fmt.Printf("bad raw target? %s", httpReq.RequestURI[:])
 	target := cleanTarget(rawTarget)
 
 	// Exit if just the favicon
@@ -49,9 +50,9 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Process appropriately
 	if (method == "POST" || method == "PUT") && uploadFilename != "" {
-		uploadFile(target+"/"+uploadFilename, reqJSON)
+		httpRsp.Write(uploadFile(target+"/"+uploadFilename, reqJSON))
 	} else if deleteFilename != ""  {
-		deleteFile(target+"/"+deleteFilename)
+		httpRsp.Write(deleteFile(target+"/"+deleteFilename))
 	} else if method == "GET" && strings.Contains(rawTarget, "/") {
 		httpRsp.Write(getFile(rawTarget))
 	} else if method == "GET" && target == "" {
@@ -89,7 +90,6 @@ func cleanTarget(in string) (out string) {
 
 // Clean a filename
 func cleanFilename(in string) (out string, bad bool) {
-	fmt.Printf("%s is bad?", in)
 	if strings.Contains(in, "..") {
 		return "", true
 	}
@@ -99,26 +99,41 @@ func cleanFilename(in string) (out string, bad bool) {
 	if strings.HasPrefix(in, "/") {
 		return "", true
 	}
-	out = in
+	out = filepath.Join(configDataDirectory, in)
 	return
 }
 
 // Upload a file
-func uploadFile(filename string, contents []byte) {
+func uploadFile(filename string, contents []byte) (result []byte) {
 	filename, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
 	fmt.Printf("upload to '%s': %s\n", filename, contents)
+	os.MkdirAll(filename, 0777)
+	var err error
+	err = ioutil.WriteFile(filename, contents, 0644)
+	if err != nil {
+		fmt.Printf("  err: %s\n", err)
+		result = []byte(fmt.Sprintf("%s", err))
+	}
+	return
 }
 
 // Delete a file
-func deleteFile(filename string) {
+func deleteFile(filename string) (contents []byte) {
 	filename, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
-	fmt.Printf("delete '%s'\n", filename)
+	fmt.Printf("FILE DELETE %s\n", filename)
+	var err error
+    err = os.Remove(filename)
+	if err != nil {
+		fmt.Printf("  err: %s\n", err)
+		contents = []byte(fmt.Sprintf("%s", err))
+	}
+	return
 }
 
 // Get a file
@@ -127,8 +142,11 @@ func getFile(filename string) (contents []byte) {
 	if bad {
 		return
 	}
-	fmt.Printf("not bad?")
-	fmt.Printf("get '%s'\n", filename)
-	contents = []byte("hi there")
+	fmt.Printf("FILE GET %s\n", filename)
+	var err error
+    contents, err = ioutil.ReadFile(filename)
+	if err != nil {
+		contents = []byte(fmt.Sprintf("%s", err))
+	}
 	return
 }
