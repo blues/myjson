@@ -1,1 +1,1 @@
-curl -L 'https://myjson.live/test/file1
+curl -L 'https://myjson.live/test/file1'
