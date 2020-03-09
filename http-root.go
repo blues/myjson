@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"io/ioutil"
     "net/http"
+	"path/filepath"
 )
 
 // Root handler
@@ -86,18 +87,26 @@ func cleanTarget(in string) (out string) {
 	return
 }
 
+// Clean a filename
+func cleanFilename(in string) (out string) {
+	return filepath.Clean(in)
+}
+
 // Upload a file
 func uploadFile(filename string, contents []byte) {
+	filename = cleanFilename(filename)
 	fmt.Printf("upload to '%s': %s\n", filename, contents)
 }
 
 // Delete a file
 func deleteFile(filename string) {
+	filename = cleanFilename(filename)
 	fmt.Printf("delete '%s'\n", filename)
 }
 
 // Get a file
 func getFile(filename string) (contents []byte) {
+	filename = cleanFilename(filename)
 	fmt.Printf("get '%s'\n", filename)
 	contents = []byte("hi there")
 	return
