@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -37,9 +38,17 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		count, _ = strconv.Atoi(args["tail"])
 	}
 	clean, _ := strconv.Atoi(args["clean"])
+	uploadFilename := args["upload"]
+	deleteFilename := args["delete"]
 
 	// Process appropriately
-	if method == "GET" && target == "" {
+	if (method == "POST" || method == "PUT") && uploadFilename != "" {
+		uploadFile(target+"/"+uploadFilename, reqJSON)
+	} else if (method == "POST" || method == "PUT") && deleteFilename != ""  {
+		deleteFile(target+"/"+deleteFilename)
+	} else if method == "GET" && strings.Contains(target, "/") {
+		httpRsp.Write(getFile(target))
+	} else if method == "GET" && target == "" {
 		help(httpRsp)
 	} else if method == "GET" && count != 0 {
 		data := tail(target, count, false, &args)
@@ -69,5 +78,22 @@ func cleanTarget(in string) (out string) {
 			out = out + "-"
 		}
 	}
+	return
+}
+
+// Upload a file
+func uploadFile(filename string, contents []byte) {
+	fmt.Printf("upload to '%s': %s\n", filename, contents)
+}
+
+// Delete a file
+func deleteFile(filename string) {
+	fmt.Printf("delete '%s'\n", filename)
+}
+
+// Get a file
+func getFile(filename string) (contents []byte) {
+	fmt.Printf("get '%s'\n", filename)
+	contents = []byte("hi there")
 	return
 }
