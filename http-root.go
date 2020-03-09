@@ -30,6 +30,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
+	fmt.Printf("bad raw target? %s", rawTarget)
 	target := cleanTarget(rawTarget)
 
 	// Exit if just the favicon
@@ -88,6 +89,7 @@ func cleanTarget(in string) (out string) {
 
 // Clean a filename
 func cleanFilename(in string) (out string, bad bool) {
+	fmt.Printf("%s is bad?", in)
 	if strings.Contains(in, "..") {
 		return "", true
 	}
@@ -125,6 +127,7 @@ func getFile(filename string) (contents []byte) {
 	if bad {
 		return
 	}
+	fmt.Printf("not bad?")
 	fmt.Printf("get '%s'\n", filename)
 	contents = []byte("hi there")
 	return
