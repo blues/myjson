@@ -110,7 +110,10 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 		return
 	}
 	fmt.Printf("upload to '%s': %s\n", filename, contents)
-	os.MkdirAll(filename, 0777)
+	c := strings.Split(filename, "/")
+	if len(c) > 1 {
+		os.MkdirAll(strings.Join(c, "/"), 0777)
+	}
 	var err error
 	err = ioutil.WriteFile(filename, contents, 0644)
 	if err != nil {
