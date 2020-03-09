@@ -32,6 +32,11 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	rawTarget, args := HTTPArgs(httpReq, "")
 	target := cleanTarget(rawTarget)
 
+	// Exit if just the favicon
+	if rawTarget == "favicon.ico" {
+		return
+	}
+
 	// Process args
 	count, _ := strconv.Atoi(args["count"])
 	if count == 0 {
