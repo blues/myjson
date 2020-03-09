@@ -46,7 +46,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		uploadFile(target+"/"+uploadFilename, reqJSON)
 	} else if deleteFilename != ""  {
 		deleteFile(target+"/"+deleteFilename)
-	} else if method == "GET" && strings.Contains(target, "/") {
+	} else if method == "GET" && strings.Contains(rawTarget, "/") {
 		httpRsp.Write(getFile(rawTarget))
 	} else if method == "GET" && target == "" {
 		help(httpRsp)
