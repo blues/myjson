@@ -29,8 +29,8 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	_ = reqJSON
 
 	// Get the target
-	target, args := HTTPArgs(httpReq, "")
-	target = cleanTarget(target)
+	rawTarget, args := HTTPArgs(httpReq, "")
+	target := cleanTarget(rawTarget)
 
 	// Process args
 	count, _ := strconv.Atoi(args["count"])
@@ -44,10 +44,10 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	// Process appropriately
 	if (method == "POST" || method == "PUT") && uploadFilename != "" {
 		uploadFile(target+"/"+uploadFilename, reqJSON)
-	} else if (method == "POST" || method == "PUT") && deleteFilename != ""  {
+	} else if deleteFilename != ""  {
 		deleteFile(target+"/"+deleteFilename)
 	} else if method == "GET" && strings.Contains(target, "/") {
-		httpRsp.Write(getFile(target))
+		httpRsp.Write(getFile(rawTarget))
 	} else if method == "GET" && target == "" {
 		help(httpRsp)
 	} else if method == "GET" && count != 0 {
