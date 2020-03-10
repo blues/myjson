@@ -8,6 +8,7 @@ import (
 	"os"
 	"fmt"
 	"sync"
+	"mime"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -61,7 +62,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		var ctype string
 		c := strings.Split(rawTarget, ".")
 		if len(c) > 1 {
-			ctype = contentType(c[len(c)-1])
+			ctype = mime.TypeByExtension("."+c[len(c)-1])
 			if ctype != "" {
 				httpRsp.Header().Set("Content-Type", ctype)
 				httpRsp.WriteHeader(http.StatusOK)
@@ -164,122 +165,13 @@ func getFile(filename string, ctype string) (contents []byte) {
 	if bad {
 		return
 	}
-	fmt.Printf("FILE GET %s %s\n", filename, ctype)
+	fmt.Printf("FILE GET %s (%s)\n", filename, ctype)
 	var err error
 	fileLock.Lock()
 	contents, err = ioutil.ReadFile(pathname)
 	fileLock.Unlock()
 	if err != nil {
 		contents = []byte(fmt.Sprintf("%s", err))
-	}
-	return
-}
-
-// Get the content type from extension
-func contentType(extension string) (ctype string) {
-	switch extension {
-	case "aac":
-		ctype = "audio/aac"
-	case "bmp":
-		ctype = "image/bmp"
-	case "css":
-		ctype = "text/css"
-	case "csv":
-		ctype = "text/csv"
-	case "doc":
-		ctype = "application/msword"
-	case "docx":
-		ctype = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-	case "gz":
-		ctype = "application/gzip"
-	case "gif":
-		ctype = "image/gif"
-	case "htm":
-		ctype = "text/html"
-	case "html":
-		ctype = "text/html"
-	case "ico":
-		ctype = "image/vnd.microsoft.icon"
-	case "ics":
-		ctype = "text/calendar"
-	case "jar":
-		ctype = "application/java-archive"
-	case "jpeg":
-		ctype = "image/jpeg"
-	case "jpg":
-		ctype = "image/jpeg"
-	case "js":
-		ctype = "text/javascript"
-	case "json":
-		ctype = "application/json"
-	case "jsonld":
-		ctype = "application/ld+json"
-	case "mid":
-		ctype = "audio/midi audio/x-midi"
-	case "midi":
-		ctype = "audio/midi audio/x-midi"
-	case "mjs":
-		ctype = "text/javascript"
-	case "mp3":
-		ctype = "audio/mpeg"
-	case "mpeg":
-		ctype = "video/mpeg"
-	case "opus":
-		ctype = "audio/opus"
-	case "otf":
-		ctype = "font/otf"
-	case "png":
-		ctype = "image/png"
-	case "pdf":
-		ctype = "application/pdf"
-	case "php":
-		ctype = "application/php"
-	case "ppt":
-		ctype = "application/vnd.ms-powerpoint"
-	case "pptx":
-		ctype = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-	case "rar":
-		ctype = "application/vnd.rar"
-	case "rtf":
-		ctype = "application/rtf"
-	case "sh":
-		ctype = "application/x-sh"
-	case "svg":
-		ctype = "image/svg+xml"
-	case "swf":
-		ctype = "application/x-shockwave-flash"
-	case "tar":
-		ctype = "application/x-tar"
-	case "tif":
-		ctype = "image/tiff"
-	case "tiff":
-		ctype = "image/tiff"
-	case "ttf":
-		ctype = "font/ttf"
-	case "txt":
-		ctype = "text/plain"
-	case "wav":
-		ctype = "audio/wav"
-	case "weba":
-		ctype = "audio/webm"
-	case "webm":
-		ctype = "video/webm"
-	case "webp":
-		ctype = "image/webp"
-	case "xhtml":
-		ctype = "application/xhtml+xml"
-	case "xls":
-		ctype = "application/vnd.ms-excel"
-	case "xlsx":
-		ctype = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	case "xml":
-		ctype = "application/xml"
-	case "zip":
-		ctype = "application/zip"
-	case "3gp":
-		ctype = "video/3gpp"
-	case "7z":
-		ctype = "application/x-7z-compressed"
 	}
 	return
 }
