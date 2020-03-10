@@ -36,6 +36,9 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
+	if strings.HasSuffix(rawTarget, "/") {
+		rawTarget = strings.TrimSuffix(rawTarget, "/")
+	}
 	target := cleanTarget(rawTarget)
 
 	// Exit if just the favicon
@@ -83,14 +86,9 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	if method == "GET" {
-		path := rawTarget
-		if strings.HasSuffix(path, "/") {
-			path += "index.html"
-		} else {
-			path += "/index.html"
-		}
+		path := rawTarget + "/index.html"
 		ctype := mime.TypeByExtension(".html")
-		contents, exists := getFile(rawTarget, ctype)
+		contents, exists := getFile(path, ctype)
 		if exists {
 			httpRsp.Header().Set("Content-Type", ctype)
 			httpRsp.WriteHeader(http.StatusOK)
