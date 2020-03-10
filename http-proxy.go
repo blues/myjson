@@ -57,6 +57,5 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		return
 	}
 	httpRsp.Write(rspbuf)
-	fmt.Printf("proxy: success\n")
 	
 }
