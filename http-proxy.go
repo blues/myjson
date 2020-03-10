@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"bytes"
 	"time"
+	"strings"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -46,6 +47,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	// a strange web page on a semi-random basis.
 	var rspbuf []byte
 	var resp *http.Response
+	var maxRetries = 5
 	for i:=0;;i++ {
 		
 		var req *http.Request
@@ -74,19 +76,27 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		// Validate that it's compliant JSON
 		err = json.Unmarshal(rspbuf, &jobj)
 		if err == nil {
-			break
+
+			// See if there was an I/O error to the card, and retry if so
+			if !strings.Contains(string(rspbuf), "{io}") {
+				break
+			}
+
+			fmt.Printf("proxy: I/O error on try #%d/%d\n", i+1, maxRetries)
+
+		} else {
+
+			fmt.Printf("proxy: received non-JSON on try #%d/%d\n", i+1, maxRetries)
+
 		}
 
 		// Exit after N retries
-		var maxRetries = 5
 		if i > maxRetries {
 			err = fmt.Errorf("proxy: server isn't returning JSON")
 			fmt.Printf("%s\n", err)
 			httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
 			return
 		}
-
-		fmt.Printf("proxy: received non-JSON on try #%d/%d\n", i+1, maxRetries)
 
 	}
 
