@@ -1,1 +1,1 @@
-curl -L 'https://myjson.live/test?delete=file1'
+curl -L 'https://notecard.live/test?delete=file1'
