@@ -15,9 +15,20 @@ import (
 	"encoding/json"
 )
 
+// Rate limiting because of Balena's proxy
+const throttleMs = 500
+var throttleTime int64
+
 // Proxy handler so that we may make external references from local pages without CORS issues.	Note that
 // this ONLY is supported for JSON queries.
 func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
+
+	// Throttle because of Balena's rate limit
+	msSinceLastTransaction := (time.Now().UnixNano() - throttleTime) / 1000000
+	if (msSinceLastTransaction < throttleMs) {
+		time.Sleep(time.Duration(throttleMs - msSinceLastTransaction) * time.Millisecond)
+	}
+	throttleTime = time.Now().UnixNano()
 
 	// Get the body if supplied
 	reqBody, err := ioutil.ReadAll(httpReq.Body)
