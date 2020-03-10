@@ -40,6 +40,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	var jobj map[string]interface{}
 	err = json.Unmarshal(reqBody, &jobj)
 	if err != nil {
+		fmt.Printf("proxy json input err: %s\n%v\n", err, reqBody)
 		httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
 		return
 	}
