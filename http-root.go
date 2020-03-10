@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"sync"
 	"mime"
-	"time"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -28,16 +27,12 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	if method == "" {
 		method = "GET"
 	}
-
-	// Try to fix Greg's Linux problem by waiting for full upload
-	time.Sleep(1 * time.Second)
 	
 	// Get the body if supplied
 	reqJSON, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
 		reqJSON = []byte{}
 	}
-	_ = reqJSON
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
@@ -59,7 +54,11 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Process appropriately
 	if (method == "POST" || method == "PUT") && uploadFilename != "" {
-		httpRsp.Write(uploadFile(target+"/"+uploadFilename, reqJSON))
+		if len(reqJSON) == 0 {
+			httpRsp.Write([]byte("error: zero-length file"))
+		} else {
+			httpRsp.Write(uploadFile(target+"/"+uploadFilename, reqJSON))
+		}
 	} else if deleteFilename != ""	{
 		httpRsp.Write(deleteFile(target+"/"+deleteFilename))
 	} else if method == "GET" && strings.Contains(rawTarget, "/") && !strings.Contains(rawTarget, ":") {
