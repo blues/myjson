@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"sync"
 	"mime"
+	"time"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -28,6 +29,9 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		method = "GET"
 	}
 
+	// Try to fix Greg's Linux problem by waiting for full upload
+	time.Sleep(1 * time.Second)
+	
 	// Get the body if supplied
 	reqJSON, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
