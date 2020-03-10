@@ -59,9 +59,14 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		} else {
 			httpRsp.Write(uploadFile(target+"/"+uploadFilename, reqJSON))
 		}
-	} else if deleteFilename != ""	{
+		return
+	}
+	if deleteFilename != ""	{
 		httpRsp.Write(deleteFile(target+"/"+deleteFilename))
-	} else if method == "GET" && strings.Contains(rawTarget, "/") && !strings.Contains(rawTarget, ":") {
+		return
+	}
+
+	if method == "GET" && strings.Contains(rawTarget, "/") && !strings.Contains(rawTarget, ":") {
 		var ctype string
 		c := strings.Split(rawTarget, ".")
 		if len(c) > 1 {
@@ -71,23 +76,56 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				httpRsp.WriteHeader(http.StatusOK)
 			}
 		}
-		httpRsp.Write(getFile(rawTarget, ctype))
-	} else if method == "GET" && target == "" {
-		help(httpRsp)
-	} else if method == "GET" && count != 0 {
-		data := tail(target, count, false, &args)
-		httpRsp.Write(data)
-	} else if method == "GET" && clean != 0 {
-		data := tail(target, clean, true, nil)
-		httpRsp.Write(data)
-	} else if method == "GET" {
-		watch(httpRsp, httpReq, target)
-	} else if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {
-		post(httpRsp, target, reqJSON)
-	} else {
-		httpRsp.Write([]byte(method + " " + target + " ???"))
+		contents, _ := getFile(rawTarget, ctype)
+		httpRsp.Write(contents)
+		return
 	}
 
+	if method == "GET" {
+		path := rawTarget
+		if strings.HasSuffix(path, "/") {
+			path += "index.html"
+		} else {
+			path += "/index.html"
+		}
+		ctype := mime.TypeByExtension(".html")
+		contents, exists := getFile(rawTarget, ctype)
+		if exists {
+			httpRsp.Header().Set("Content-Type", ctype)
+			httpRsp.WriteHeader(http.StatusOK)
+			httpRsp.Write(contents)
+		}
+		return
+	}
+
+	if method == "GET" && target == "" {
+		help(httpRsp)
+		return
+	}
+
+	if method == "GET" && count != 0 {
+		data := tail(target, count, false, &args)
+		httpRsp.Write(data)
+		return
+	}
+
+	if method == "GET" && clean != 0 {
+		data := tail(target, clean, true, nil)
+		httpRsp.Write(data)
+		return
+	}
+
+	if method == "GET" {
+		watch(httpRsp, httpReq, target)
+		return
+	}
+
+	if (method == "POST" || method == "PUT") && len(reqJSON) > 0 {
+		post(httpRsp, target, reqJSON)
+		return
+	}
+
+	httpRsp.Write([]byte(method + " " + target + " ???"))
 	return
 
 }
@@ -163,18 +201,20 @@ func deleteFile(filename string) (contents []byte) {
 }
 
 // Get a file
-func getFile(filename string, ctype string) (contents []byte) {
+func getFile(filename string, ctype string) (contents []byte, exists bool) {
 	pathname, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
-	fmt.Printf("FILE GET %s (%s)\n", filename, ctype)
 	var err error
 	fileLock.Lock()
 	contents, err = ioutil.ReadFile(pathname)
 	fileLock.Unlock()
 	if err != nil {
 		contents = []byte(fmt.Sprintf("%s", err))
+	} else {
+		exists = true
+		fmt.Printf("FILE GET %s (%s)\n", filename, ctype)
 	}
 	return
 }
