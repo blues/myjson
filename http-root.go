@@ -93,8 +93,8 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 			httpRsp.Header().Set("Content-Type", ctype)
 			httpRsp.WriteHeader(http.StatusOK)
 			httpRsp.Write(contents)
+			return
 		}
-		return
 	}
 
 	if method == "GET" && target == "" {
