@@ -113,7 +113,7 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 	if bad {
 		return
 	}
-	fmt.Printf("upload to '%s': %s\n", filename, contents)
+	fmt.Printf("upload %d bytes to '%s'\n", len(contents), filename)
 	c := strings.Split(filename, "/")
 	if len(c) > 1 {
 		fileLock.Lock()
