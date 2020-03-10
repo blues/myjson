@@ -118,12 +118,12 @@ func cleanFilename(in string) (out string, bad bool) {
 
 // Upload a file
 func uploadFile(filename string, contents []byte) (result []byte) {
-	filename, bad := cleanFilename(filename)
+	pathname, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
 	fmt.Printf("upload %d bytes to '%s'\n", len(contents), filename)
-	c := strings.Split(filename, "/")
+	c := strings.Split(pathname, "/")
 	if len(c) > 1 {
 		fileLock.Lock()
 		os.MkdirAll(strings.Join(c[0:len(c)-1], "/"), 0777)
@@ -131,7 +131,7 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 	}
 	var err error
 	fileLock.Lock()
-	err = ioutil.WriteFile(filename, contents, 0644)
+	err = ioutil.WriteFile(pathname, contents, 0644)
 	fileLock.Unlock()
 	if err != nil {
 		fmt.Printf("  err: %s\n", err)
@@ -142,14 +142,14 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 
 // Delete a file
 func deleteFile(filename string) (contents []byte) {
-	filename, bad := cleanFilename(filename)
+	pathname, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
 	fmt.Printf("FILE DELETE %s\n", filename)
 	var err error
 	fileLock.Lock()
-	err = os.Remove(filename)
+	err = os.Remove(pathname)
 	fileLock.Unlock()
 	if err != nil {
 		fmt.Printf("  err: %s\n", err)
@@ -160,14 +160,14 @@ func deleteFile(filename string) (contents []byte) {
 
 // Get a file
 func getFile(filename string, ctype string) (contents []byte) {
-	filename, bad := cleanFilename(filename)
+	pathname, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
 	fmt.Printf("FILE GET %s %s\n", filename, ctype)
 	var err error
 	fileLock.Lock()
-	contents, err = ioutil.ReadFile(filename)
+	contents, err = ioutil.ReadFile(pathname)
 	fileLock.Unlock()
 	if err != nil {
 		contents = []byte(fmt.Sprintf("%s", err))
