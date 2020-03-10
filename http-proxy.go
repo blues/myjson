@@ -16,7 +16,7 @@ import (
 )
 
 // Rate limiting because of Balena's proxy
-const throttleMs = 500
+const throttleMs = 250
 var throttleTime int64
 
 // Proxy handler so that we may make external references from local pages without CORS issues.	Note that
