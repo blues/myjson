@@ -76,6 +76,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				httpRsp.WriteHeader(http.StatusOK)
 			}
 		}
+		fmt.Printf("xx: %s\n", rawTarget)
 		contents, _ := getFile(rawTarget, ctype)
 		httpRsp.Write(contents)
 		return
