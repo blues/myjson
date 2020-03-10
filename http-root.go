@@ -79,7 +79,6 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				httpRsp.WriteHeader(http.StatusOK)
 			}
 		}
-		fmt.Printf("xx: %s\n", rawTarget)
 		contents, _ := getFile(rawTarget, ctype)
 		httpRsp.Write(contents)
 		return
@@ -88,13 +87,12 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	if method == "GET" {
 		path := rawTarget + "/index.html"
 		ctype := mime.TypeByExtension(".html")
-		contents, exists := getFile(path, ctype)
+		_, exists := getFile(path, ctype)
 		if exists {
-			httpRsp.Header().Set("Content-Type", ctype)
-			httpRsp.WriteHeader(http.StatusOK)
-			httpRsp.Write(contents)
-		}
+			fmt.Printf("redirect to %s\n", path)
+			http.Redirect(httpRsp, httpReq, path, http.StatusTemporaryRedirect)
 			return
+		}
 	}
 
 	if method == "GET" && target == "" {
