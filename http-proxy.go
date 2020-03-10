@@ -109,6 +109,9 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 
+		// Essential to coming out of Balena's penalty box
+		time.Sleep(2 * time.Second)
+
 	}
 
 	httpRsp.WriteHeader(resp.StatusCode)
