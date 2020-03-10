@@ -7,12 +7,16 @@ package main
 import (
 	"os"
 	"fmt"
+	"sync"
 	"strings"
 	"strconv"
 	"io/ioutil"
     "net/http"
 	"path/filepath"
 )
+
+// Ensure file integrity
+var fileLock sync.RWMutex
 
 // Root handler
 func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
@@ -112,10 +116,14 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 	fmt.Printf("upload to '%s': %s\n", filename, contents)
 	c := strings.Split(filename, "/")
 	if len(c) > 1 {
+		fileLock.Lock()
 		os.MkdirAll(strings.Join(c[0:len(c)-1], "/"), 0777)
+		fileLock.Unlock()
 	}
 	var err error
+	fileLock.Lock()
 	err = ioutil.WriteFile(filename, contents, 0644)
+	fileLock.Unlock()
 	if err != nil {
 		fmt.Printf("  err: %s\n", err)
 		result = []byte(fmt.Sprintf("%s", err))
@@ -131,7 +139,9 @@ func deleteFile(filename string) (contents []byte) {
 	}
 	fmt.Printf("FILE DELETE %s\n", filename)
 	var err error
+	fileLock.Lock()
     err = os.Remove(filename)
+	fileLock.Unlock()
 	if err != nil {
 		fmt.Printf("  err: %s\n", err)
 		contents = []byte(fmt.Sprintf("%s", err))
@@ -147,7 +157,9 @@ func getFile(filename string) (contents []byte) {
 	}
 	fmt.Printf("FILE GET %s\n", filename)
 	var err error
+	fileLock.Lock()
     contents, err = ioutil.ReadFile(filename)
+	fileLock.Unlock()
 	if err != nil {
 		contents = []byte(fmt.Sprintf("%s", err))
 	}
