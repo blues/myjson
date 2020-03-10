@@ -30,10 +30,12 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 		return
 	}
+	fmt.Printf("proxy: %s\n", proxyURL)
 	
 	// Perform the transaction
 	req, err1 := http.NewRequest(httpReq.Method, proxyURL, bytes.NewBuffer(reqBody))
 	if err1 != nil {
+		fmt.Printf("proxy NR err: %s\n", err1)
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err1)))
 		return
 	}
@@ -41,6 +43,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	httpclient := &http.Client{	Timeout: time.Second * 15 }
 	resp, err2 := httpclient.Do(req)
 	if err2 != nil {
+		fmt.Printf("proxy DO err: %s\n", err2)
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err2)))
 		return
 	}
@@ -49,9 +52,11 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	var rspbuf []byte
 	rspbuf, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Printf("proxy RD err: %s\n", err2)
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 		return
 	}
 	httpRsp.Write(rspbuf)
+	fmt.Printf("proxy: success\n")
 	
 }
