@@ -36,15 +36,6 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		reqBody = []byte("")
 	}
 
-	// Verify that it is compliant JSON
-	var jobj map[string]interface{}
-	err = json.Unmarshal(reqBody, &jobj)
-	if err != nil {
-		fmt.Printf("proxy json input err: %s\n%v\n", err, reqBody)
-		httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
-		return
-	}
-
 	// Get the target
 	_, args := HTTPArgs(httpReq, "")
 	var proxyURL string
@@ -86,6 +77,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		}
 
 		// Validate that it's compliant JSON
+		var jobj map[string]interface{}
 		err = json.Unmarshal(rspbuf, &jobj)
 		if err == nil {
 
