@@ -84,7 +84,19 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 		if file.IsDir() {
 			continue
 		}
-		filenames = append(filenames, file.Name())
+
+		// Only purge files that are of the form yyyy-mm-dd.json
+		name := file.Name()
+		if !strings.HasSuffix(name, ".json") {
+			continue
+		}
+		if len(strings.Split(name, "-")) != 3 {
+			continue
+		}
+
+		// Append the name to the list of files to be deleted
+		filenames = append(filenames, name)
+
 	}
 	if len(filenames) == 0 {
 		return
