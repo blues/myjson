@@ -82,8 +82,12 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		if err == nil {
 
 			// See if there was an I/O error to the card, and retry if so
-			if !strings.Contains(string(rspbuf), "{io}") || i > maxRetries {
+			if !strings.Contains(string(rspbuf), "{io}") {
 				break
+			}
+			if i > maxRetries {
+				httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"proxy: cannot communicate with notecard {io}\"}")))
+				return
 			}
 
 			fmt.Printf("proxy: I/O error on try #%d/%d\n", i+1, maxRetries)
