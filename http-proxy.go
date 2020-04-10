@@ -52,7 +52,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	var resp *http.Response
 	var maxRetries = 5
 	for i:=0;;i++ {
-		
+
 		var req *http.Request
 		req, err = http.NewRequest(httpReq.Method, proxyURL, bytes.NewBuffer(reqBody))
 		if err != nil {
@@ -82,7 +82,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		if err == nil {
 
 			// See if there was an I/O error to the card, and retry if so
-			if !strings.Contains(string(rspbuf), "{io}") {
+			if !strings.Contains(string(rspbuf), "{io}") || i > maxRetries {
 				break
 			}
 
@@ -91,16 +91,13 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		} else {
 
 			fmt.Printf("proxy: received non-JSON on try #%d/%d\n", i+1, maxRetries)
-
-		}
-
-		// Exit after N retries
-		if i > maxRetries {
-			err = fmt.Errorf("proxy: server isn't returning JSON")
-			fmt.Printf("%s\n", string(rspbuf))
-			fmt.Printf("%s\n", err)
-			httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
+			if i > maxRetries {
+				fmt.Printf("%s\n", string(rspbuf))
+				fmt.Printf("%s\n", err)
+				httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
+			}
 			return
+
 		}
 
 		// Essential to coming out of Balena's penalty box
