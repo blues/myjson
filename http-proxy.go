@@ -97,6 +97,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		// Exit after N retries
 		if i > maxRetries {
 			err = fmt.Errorf("proxy: server isn't returning JSON")
+			fmt.Printf("%v\n", rspbuf)
 			fmt.Printf("%s\n", err)
 			httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
 			return
