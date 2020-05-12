@@ -99,8 +99,8 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 				fmt.Printf("%s\n", string(rspbuf))
 				fmt.Printf("%s\n", err)
 				httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))
+				return
 			}
-			return
 
 		}
 
