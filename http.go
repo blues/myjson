@@ -7,9 +7,9 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 // HTTPInboundHandler kicks off inbound messages coming from all sources, then serve HTTP
@@ -20,6 +20,7 @@ func HTTPInboundHandler(port string) {
 	http.HandleFunc("/ping", inboundWebPingHandler)
 	http.HandleFunc("/proxy", inboundWebProxyHandler)
 	http.HandleFunc("/robots.txt", inboundWebPingHandler)
+	http.HandleFunc("/env", inboundWebEnvHandler)
 	http.HandleFunc("/", inboundWebRootHandler)
 
 	// HTTP
@@ -59,7 +60,7 @@ func HTTPArgs(req *http.Request, topic string) (target string, args map[string]s
 	}
 
 	// Generate the return arg in the format we expect
-	for k, v := range(values) {
+	for k, v := range values {
 		if len(v) == 1 {
 			args[k] = strings.TrimSuffix(strings.TrimPrefix(v[0], "\""), "\"")
 		}
