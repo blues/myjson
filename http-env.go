@@ -28,7 +28,7 @@ func inboundWebEnvHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		return
 	}
 	device := args["device"]
-	if product == "" {
+	if device == "" {
 		fmt.Fprintf(httpRsp, "device not specified")
 		return
 	}
@@ -72,7 +72,7 @@ func envGet(httpReq *http.Request, product string, device string) (env []byte, s
 	body := map[string]interface{}{}
 	body["product"] = product
 	body["device"] = device
-	body["req"] = "env.get"
+	body["req"] = "hub.env.get"
 	body["scope"] = "device"
 
 	// Marshal the request
@@ -120,7 +120,7 @@ func envSet(httpReq *http.Request, product string, device string, envJSON []byte
 	body := map[string]interface{}{}
 	body["product"] = product
 	body["device"] = device
-	body["req"] = "env.set"
+	body["req"] = "hub.env.set"
 	body["scope"] = "device"
 	body["env"] = env
 
