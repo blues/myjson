@@ -66,24 +66,24 @@ func inboundWebEnvHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 }
 
 // Call the notehub to get env vars
-func envGet(httpReq *http.Request, product string, device string) (env []byte, statusCode int, err error) {
+func envGet(httpReq *http.Request, product string, device string) (rsp []byte, statusCode int, err error) {
 
 	// Formulate the request
-	body := map[string]interface{}{}
-	body["product"] = product
-	body["device"] = device
-	body["req"] = "hub.env.get"
-	body["scope"] = "device"
+	req := map[string]interface{}{}
+	req["product"] = product
+	req["device"] = device
+	req["req"] = "hub.env.get"
+	req["scope"] = "device"
 
 	// Marshal the request
-	bodyJSON, err := json.Marshal(body)
+	reqJSON, err := json.Marshal(req)
 	if err != nil {
 		return
 	}
 
 	// Create the new HTTP request
-	var req *http.Request
-	req, err = http.NewRequest("POST", notehub, bytes.NewBuffer(bodyJSON))
+	var httpreq *http.Request
+	httpreq, err = http.NewRequest("POST", notehub, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		err = fmt.Errorf("nr err: %s", err)
 		return
@@ -91,15 +91,15 @@ func envGet(httpReq *http.Request, product string, device string) (env []byte, s
 
 	// Perform the HTTP I/O
 	httpclient := &http.Client{Timeout: time.Second * 15}
-	resp, err := httpclient.Do(req)
+	httpresp, err := httpclient.Do(httpreq)
 	if err != nil {
 		err = fmt.Errorf("do err: %s", err)
 		return
 	}
-	statusCode = resp.StatusCode
+	statusCode = httpresp.StatusCode
 
 	// Read the response
-	env, err = ioutil.ReadAll(resp.Body)
+	rsp, err = ioutil.ReadAll(httpresp.Body)
 
 	// Done
 	return
@@ -107,32 +107,31 @@ func envGet(httpReq *http.Request, product string, device string) (env []byte, s
 }
 
 // Call the notehub to set env vars
-func envSet(httpReq *http.Request, product string, device string, envJSON []byte) (statusCode int, err error) {
+func envSet(httpReq *http.Request, product string, device string, reqJSON []byte) (statusCode int, err error) {
 
-	// Unmarshal the env
-	env := map[string]interface{}{}
-	err = json.Unmarshal(envJSON, &env)
+	// Unmarshal the request
+	req := map[string]interface{}{}
+	err = json.Unmarshal(reqJSON, &req)
 	if err != nil {
 		return
 	}
 
-	// Formulate the request
-	body := map[string]interface{}{}
-	body["product"] = product
-	body["device"] = device
-	body["req"] = "hub.env.set"
-	body["scope"] = "device"
-	body["env"] = env
+	// Re-formulate it with constraints
+	delete(req, "app")
+	req["product"] = product
+	req["device"] = device
+	req["req"] = "hub.env.set"
+	req["scope"] = "device"
 
 	// Marshal the request
-	bodyJSON, err := json.Marshal(body)
+	reqJSON, err = json.Marshal(req)
 	if err != nil {
 		return
 	}
 
 	// Create the new HTTP request
-	var req *http.Request
-	req, err = http.NewRequest("POST", notehub, bytes.NewBuffer(bodyJSON))
+	var httpreq *http.Request
+	httpreq, err = http.NewRequest("POST", notehub, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		err = fmt.Errorf("nr err: %s", err)
 		return
@@ -140,12 +139,12 @@ func envSet(httpReq *http.Request, product string, device string, envJSON []byte
 
 	// Perform the HTTP I/O
 	httpclient := &http.Client{Timeout: time.Second * 15}
-	resp, err := httpclient.Do(req)
+	httpresp, err := httpclient.Do(httpreq)
 	if err != nil {
 		err = fmt.Errorf("do err: %s", err)
 		return
 	}
-	statusCode = resp.StatusCode
+	statusCode = httpresp.StatusCode
 
 	// Done
 	return
