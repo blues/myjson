@@ -5,15 +5,15 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"sync"
-	"mime"
-	"strings"
-	"strconv"
 	"io/ioutil"
+	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 // Ensure file integrity
@@ -27,7 +27,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	if method == "" {
 		method = "GET"
 	}
-	
+
 	// Get the body if supplied
 	reqJSON, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
@@ -52,7 +52,13 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		count, _ = strconv.Atoi(args["tail"])
 	}
 	clean, _ := strconv.Atoi(args["clean"])
-	uploadFilename := args["upload"]
+	append := false
+	uploadFilename := args["append"]
+	if uploadFilename != "" {
+		append = true
+	} else {
+		uploadFilename = args["upload"]
+	}
 	deleteFilename := args["delete"]
 
 	// Process appropriately
@@ -60,12 +66,12 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		if len(reqJSON) == 0 {
 			httpRsp.Write([]byte("error: zero-length file"))
 		} else {
-			httpRsp.Write(uploadFile(target+"/"+uploadFilename, reqJSON))
+			httpRsp.Write(uploadFile(target+"/"+uploadFilename, append, reqJSON))
 		}
 		return
 	}
-	if deleteFilename != ""	{
-		httpRsp.Write(deleteFile(target+"/"+deleteFilename))
+	if deleteFilename != "" {
+		httpRsp.Write(deleteFile(target + "/" + deleteFilename))
 		return
 	}
 
@@ -73,7 +79,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		var ctype string
 		c := strings.Split(rawTarget, ".")
 		if len(c) > 1 {
-			ctype = mime.TypeByExtension("."+c[len(c)-1])
+			ctype = mime.TypeByExtension("." + c[len(c)-1])
 			if ctype != "" {
 				httpRsp.Header().Set("Content-Type", ctype)
 				httpRsp.WriteHeader(http.StatusOK)
@@ -156,12 +162,15 @@ func cleanFilename(in string) (out string, bad bool) {
 }
 
 // Upload a file
-func uploadFile(filename string, contents []byte) (result []byte) {
+func uploadFile(filename string, append bool, contents []byte) (result []byte) {
+
 	pathname, bad := cleanFilename(filename)
 	if bad {
 		return
 	}
+
 	fmt.Printf("upload %d bytes to '%s'\n", len(contents), filename)
+
 	c := strings.Split(pathname, "/")
 	if len(c) > 1 {
 		fileLock.Lock()
@@ -169,14 +178,28 @@ func uploadFile(filename string, contents []byte) (result []byte) {
 		fileLock.Unlock()
 	}
 	var err error
+
 	fileLock.Lock()
-	err = ioutil.WriteFile(pathname, contents, 0644)
+
+	flags := os.O_CREATE | os.O_WRONLY
+	if append {
+		flags = flags | os.O_APPEND
+	}
+	f, err := os.OpenFile(pathname, flags, 0644)
+	if err == nil {
+		_, err = f.Write(contents)
+		f.Close()
+	}
+
 	fileLock.Unlock()
+
 	if err != nil {
 		fmt.Printf("  err: %s\n", err)
 		result = []byte(fmt.Sprintf("%s", err))
 	}
+
 	return
+
 }
 
 // Delete a file
