@@ -61,6 +61,12 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 	deleteFilename := args["delete"]
 
+	// Map the delete verb
+	if method == "DELETE" && strings.Contains(rawTarget, "/") && !strings.Contains(rawTarget, ":") {
+		httpRsp.Write(deleteFile(rawTarget))
+		return
+	}
+
 	// Process appropriately
 	if (method == "POST" || method == "PUT") && uploadFilename != "" {
 		if len(reqJSON) == 0 {
