@@ -9,8 +9,12 @@ import (
 	"time"
 )
 
+// Notehub URL to use
+const notehubURL = "https://api.notefile.net"
+
 // Directory in the home directory that will be used for data
 const configDataDirectoryBase = "/data/"
+
 var configDataDirectory = ""
 
 // Maximum number of retained posts per target
@@ -22,19 +26,19 @@ func main() {
 	// Compute folder location
 	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
 
-    // Spawn the console input handler
-    go inputHandler()
+	// Spawn the console input handler
+	go inputHandler()
 
-    // Init our web request inbound server
-    go HTTPInboundHandler(":80")
+	// Init our web request inbound server
+	go HTTPInboundHandler(":80")
 
 	// Purge hourly
-    for {
+	for {
 		targets := tailTargets()
-		for _, target := range(targets) {
+		for _, target := range targets {
 			tail(target, configMaxPosts, true, nil)
 		}
-        time.Sleep(60 * time.Minute)
-    }
+		time.Sleep(60 * time.Minute)
+	}
 
 }

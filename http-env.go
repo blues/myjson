@@ -13,9 +13,6 @@ import (
 	"time"
 )
 
-// Notehub to use
-const notehub = "https://api.notefile.net"
-
 // Proxy handler so that we may make external references from local pages without CORS issues.	Note that
 // this ONLY is supported for JSON queries.
 func inboundWebEnvHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
@@ -83,7 +80,7 @@ func envGet(httpReq *http.Request, product string, device string) (rsp []byte, s
 
 	// Create the new HTTP request
 	var httpreq *http.Request
-	httpreq, err = http.NewRequest("POST", notehub, bytes.NewBuffer(reqJSON))
+	httpreq, err = http.NewRequest("POST", notehubURL, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		err = fmt.Errorf("nr err: %s", err)
 		return
@@ -131,7 +128,7 @@ func envSet(httpReq *http.Request, product string, device string, reqJSON []byte
 
 	// Create the new HTTP request
 	var httpreq *http.Request
-	httpreq, err = http.NewRequest("POST", notehub, bytes.NewBuffer(reqJSON))
+	httpreq, err = http.NewRequest("POST", notehubURL, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		err = fmt.Errorf("nr err: %s", err)
 		return
