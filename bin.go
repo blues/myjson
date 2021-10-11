@@ -8,6 +8,7 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strconv"
 )
@@ -30,6 +31,7 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 	// Iterate over the map
 	binOffset := 0
 	for k, t := range template {
+		fmt.Printf("OZZIE before: %s,%v %d: %v\n", k, t, binOffset, result)
 
 		// Behave differently based on type
 		switch t.(type) {
@@ -88,9 +90,11 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 			}
 			flags = flags >> 1
 		}
+		fmt.Printf("OZZIE after: %s,%v %d: %v\n", k, t, binOffset, result)
 	}
 
 	// Done
+	fmt.Printf("OZZIE exit: %v\n", result)
 	return
 
 }
