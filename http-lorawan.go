@@ -34,7 +34,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	hdrAPIKey := httpReq.Header.Get("X-Session-Token")
 	hdrFormat := httpReq.Header.Get("X-Format")
 	hdrHub := httpReq.Header.Get("X-Hub")
-	hdrProject := httpReq.Header.Get("X-Project")
+	hdrProduct := httpReq.Header.Get("X-Product")
 	hdrFile := httpReq.Header.Get("X-File")
 	hdrTemplate := httpReq.Header.Get("X-Template")
 
@@ -47,10 +47,13 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	if hdrHub == "" {
 		hdrHub = notehubURL
 	}
-	if !strings.HasPrefix(hdrProject, "app:") {
+	if hdrProduct == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte("X-App must be Notehub Project UID\r\n"))
+		httpRsp.Write([]byte("X-Product must be Notehub ProductUID\r\n"))
 		return
+	}
+	if !strings.HasPrefix(hdrProduct, "product:") {
+		hdrProduct = "product:" + hdrProduct
 	}
 	if hdrFile == "" {
 		hdrFile = "data.qo"
@@ -104,31 +107,82 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	body := map[string]interface{}{}
 	body["payload"] = fmt.Sprintf("%x", payload)
 
-	// Create the 'add note' request
-	hubreq := notehub.HubRequest{}
-	hubreq.Req = "note.add"
-	hubreq.Body = &body
-	hubreq.NotefileID = hdrFile
-	hubreq.AppUID = hdrProject
-	hubreq.DeviceUID = deviceUID
-	hubreqJSON, err := json.Marshal(hubreq)
-	fmt.Printf("OZZIE: to %s\n%s\n", hdrHub, string(hubreqJSON))
+	// Repeat this in case we need to create the device
+	var hubrspJSON []byte
+	for {
 
-	// Add the note to the notehub
-	hreq, _ := http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
-	hreq.Header.Set("User-Agent", "notecard.live")
-	hreq.Header.Set("Content-Type", "application/json")
-	hreq.Header.Set("X-Session-Token", hdrAPIKey)
-	httpClient := &http.Client{Timeout: time.Second * 10}
-	hrsp, err := httpClient.Do(hreq)
-	if err != nil {
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(fmt.Sprintf("%s says: %s", hdrHub, err)))
-		return
+		// Create the 'add note' request
+		hubreq := notehub.HubRequest{}
+		hubreq.Req = "note.add"
+		hubreq.Body = &body
+		hubreq.NotefileID = hdrFile
+		hubreq.ProductUID = hdrProduct
+		hubreq.DeviceUID = deviceUID
+		hubreqJSON, err := json.Marshal(hubreq)
+
+		// Add the note to the notehub
+		fmt.Printf("OZZIE: to %s\n%s\n", hdrHub, string(hubreqJSON))
+		hreq, _ := http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
+		hreq.Header.Set("User-Agent", "notecard.live")
+		hreq.Header.Set("Content-Type", "application/json")
+		hreq.Header.Set("X-Session-Token", hdrAPIKey)
+		httpClient := &http.Client{Timeout: time.Second * 10}
+		hrsp, err := httpClient.Do(hreq)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s says: %s", hdrHub, err)))
+			return
+		}
+		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
+		hubrsp := notehub.HubRequest{}
+		err = json.Unmarshal(hubrspJSON, &hubrsp)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte("invalid JSON response from notehub"))
+			return
+		}
+
+		// Create the device if it doesn't exist
+		if !strings.Contains(hubrsp.Err, "{device-noexist}") {
+			break
+		}
+
+		// Provision the device
+		hubreq = notehub.HubRequest{}
+		hubreq.Req = "hub.env.set"
+		hubreq.Scope = "device"
+		hubreq.Provision = true
+		hubreq.DeviceUID = deviceUID
+		hubreq.ProductUID = hdrProduct
+		hubreqJSON, err = json.Marshal(hubreq)
+		fmt.Printf("OZZIE: to %s\n%s\n", hdrHub, string(hubreqJSON))
+		hreq, _ = http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
+		hreq.Header.Set("User-Agent", "notecard.live")
+		hreq.Header.Set("Content-Type", "application/json")
+		hreq.Header.Set("X-Session-Token", hdrAPIKey)
+		httpClient = &http.Client{Timeout: time.Second * 10}
+		hrsp, err = httpClient.Do(hreq)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("on device provisioning, %s says: %s", hdrHub, err)))
+			return
+		}
+		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
+		hubrsp = notehub.HubRequest{}
+		err = json.Unmarshal(hubrspJSON, &hubrsp)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte("invalid JSON response from notehub"))
+			return
+		}
+		if hubrsp.Err != "" {
+			break
+		}
+
 	}
-	hrspJSON, _ := ioutil.ReadAll(hrsp.Body)
-	fmt.Printf("%s\n", string(hrspJSON)) // OZZIE
-	httpRsp.Write(hrspJSON)
+
+	fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
+	httpRsp.Write(hubrspJSON)
 
 	return
 
