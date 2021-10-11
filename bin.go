@@ -10,9 +10,10 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 )
 
-func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagBytes int) (result map[string]interface{}, err error) {
+func binDecodeFromTemplate(bin []byte, template string, flagBytes int) (result map[string]interface{}, err error) {
 
 	// Preset result
 	result = map[string]interface{}{}
@@ -30,84 +31,86 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 		flags = binExtractInt64(bin[binLength-8 : binLength])
 	}
 
+	// Generate an array of objects so that we can preserve order.  This is
+	// odd, but it's rooted in the fact that maps guarantee random ordering.
+	t1 := strings.ReplaceAll(template, "{", "")
+	t2 := strings.ReplaceAll(t1, "}", "")
+	t3 := strings.ReplaceAll(t2, ":", ",")
+	t4 := strings.Split(t3, ",")
+	t := t4
+
 	// Iterate over the map
 	binOffset := 0
-	for k, t := range template {
+	for i := 0; i < len(t)/2; i++ {
+
+		k := t[i*2]
+		v := t[i*2+1]
+
+		isString := false
+		isBool := false
+		f := float64(0)
+
+		if strings.HasPrefix(v, "\"") {
+			f, _ = strconv.ParseFloat(strings.ReplaceAll(v, "\"", ""), 64)
+			isString = true
+		} else if v == "true" {
+			isBool = true
+		} else {
+			f, _ = strconv.ParseFloat(v, 64)
+			if f == 0 {
+				continue
+			}
+		}
+
 		fmt.Printf("OZZIE before: %s,%v %d: %v\n", k, t, binOffset, result)
 
-		// Behave differently based on type
-		switch t.(type) {
+		if isString {
 
-		default:
-			fmt.Printf("OZZIE %T %t", t, t)
-
-		case string:
-			strLen := len(t.(string))
-			i, err2 := strconv.Atoi(t.(string))
-			if err2 == nil && i > 0 {
-				strLen = i
-			}
+			strLen := int(f)
 			result[k] = binExtractString(bin[binOffset : binOffset+strLen])
 			binOffset += strLen
 
-		case int:
-			numberType := t.(int)
-			fmt.Printf("OZZIE: int %d\n", numberType)
-			switch numberType {
-			case 11:
-				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
-				binOffset++
-			case 12:
-				result[k] = binExtractInt16(bin[binOffset : binOffset+2])
-				binOffset += 2
-			case 13:
-				result[k] = binExtractInt24(bin[binOffset : binOffset+3])
-				binOffset += 3
-			case 14:
-				result[k] = binExtractInt32(bin[binOffset : binOffset+4])
-				binOffset += 4
-			case 18:
-				result[k] = binExtractInt64(bin[binOffset : binOffset+8])
-				binOffset += 8
-			}
+		} else if isBool {
 
-		case float64:
-			numberType := t.(float64)
-			fmt.Printf("OZZIE: float %f\n", numberType)
-			if isPointOne(numberType, 12) {
-				result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
-				binOffset += 2
-			} else if isPointOne(numberType, 14) {
-				result[k] = binExtractFloat32(bin[binOffset : binOffset+4])
-				binOffset += 4
-			} else if isPointOne(numberType, 18) || isPointOne(numberType, 1) {
-				result[k] = binExtractFloat64(bin[binOffset : binOffset+8])
-				binOffset += 8
-			} else if numberType == 11 {
-				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
-				binOffset++
-			} else if numberType == 12 {
-				result[k] = binExtractInt16(bin[binOffset : binOffset+2])
-				binOffset += 2
-			} else if numberType == 13 {
-				result[k] = binExtractInt24(bin[binOffset : binOffset+3])
-				binOffset += 3
-			} else if numberType == 14 {
-				result[k] = binExtractInt32(bin[binOffset : binOffset+4])
-				binOffset += 4
-			} else if numberType == 18 {
-				result[k] = binExtractInt64(bin[binOffset : binOffset+8])
-				binOffset += 8
-			}
-
-		case bool:
 			if (flags & 0x01) != 0 {
 				result[k] = true
 			} else {
 				result[k] = false
 			}
 			flags = flags >> 1
+
+		} else {
+
+			fmt.Printf("OZZIE: float %f\n", f)
+
+			if isPointOne(f, 12) {
+				result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
+				binOffset += 2
+			} else if isPointOne(f, 14) {
+				result[k] = binExtractFloat32(bin[binOffset : binOffset+4])
+				binOffset += 4
+			} else if isPointOne(f, 18) {
+				result[k] = binExtractFloat64(bin[binOffset : binOffset+8])
+				binOffset += 8
+			} else if f == 11 {
+				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
+				binOffset++
+			} else if f == 12 {
+				result[k] = binExtractInt16(bin[binOffset : binOffset+2])
+				binOffset += 2
+			} else if f == 13 {
+				result[k] = binExtractInt24(bin[binOffset : binOffset+3])
+				binOffset += 3
+			} else if f == 14 {
+				result[k] = binExtractInt32(bin[binOffset : binOffset+4])
+				binOffset += 4
+			} else if f == 18 {
+				result[k] = binExtractInt64(bin[binOffset : binOffset+8])
+				binOffset += 8
+			}
+
 		}
+
 		fmt.Printf("OZZIE after: %s,%v %d: %v\n", k, t, binOffset, result)
 	}
 

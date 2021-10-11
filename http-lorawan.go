@@ -107,7 +107,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 
 	// Convert payload to body
 	flagBytes, _ := strconv.Atoi(hdrTemplateFlagBytes)
-	body, err := binDecodeFromTemplate(payload, payloadTemplate, flagBytes)
+	body, err := binDecodeFromTemplate(payload, hdrTemplate, flagBytes)
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
 		httpRsp.Write([]byte(fmt.Sprintf("can't decode uplink payload from template: %s\r\n", err)))
