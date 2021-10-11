@@ -7,7 +7,6 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -45,43 +44,41 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 			result[k] = binExtractString(bin[binOffset : binOffset+strLen])
 			binOffset += strLen
 
-		case json.Number:
-			numberType, errInt := t.(json.Number).Int64()
-			if errInt == nil {
-				// Integer
-				switch numberType {
-				case 11:
-					result[k] = binExtractInt8(bin[binOffset : binOffset+1])
-					binOffset++
-				case 12:
-					result[k] = binExtractInt16(bin[binOffset : binOffset+2])
-					binOffset += 2
-				case 13:
-					result[k] = binExtractInt24(bin[binOffset : binOffset+3])
-					binOffset += 3
-				case 14:
-					result[k] = binExtractInt32(bin[binOffset : binOffset+4])
-					binOffset += 4
-				case 18:
-					result[k] = binExtractInt64(bin[binOffset : binOffset+8])
-					binOffset += 8
-				}
-			} else {
-				numberType, errFloat := t.(json.Number).Float64()
-				if errFloat == nil {
-					// Real
-					if isPointOne(numberType, 12) {
-						result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
-						binOffset += 2
-					} else if isPointOne(numberType, 14) {
-						result[k] = binExtractFloat32(bin[binOffset : binOffset+4])
-						binOffset += 4
-					} else if isPointOne(numberType, 18) || isPointOne(numberType, 1) {
-						result[k] = binExtractFloat64(bin[binOffset : binOffset+8])
-						binOffset += 8
-					}
-				}
+		case int:
+			numberType := t.(int)
+			// Integer
+			switch numberType {
+			case 11:
+				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
+				binOffset++
+			case 12:
+				result[k] = binExtractInt16(bin[binOffset : binOffset+2])
+				binOffset += 2
+			case 13:
+				result[k] = binExtractInt24(bin[binOffset : binOffset+3])
+				binOffset += 3
+			case 14:
+				result[k] = binExtractInt32(bin[binOffset : binOffset+4])
+				binOffset += 4
+			case 18:
+				result[k] = binExtractInt64(bin[binOffset : binOffset+8])
+				binOffset += 8
 			}
+
+		case float64:
+			numberType := t.(float64)
+			// Real
+			if isPointOne(numberType, 12) {
+				result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
+				binOffset += 2
+			} else if isPointOne(numberType, 14) {
+				result[k] = binExtractFloat32(bin[binOffset : binOffset+4])
+				binOffset += 4
+			} else if isPointOne(numberType, 18) || isPointOne(numberType, 1) {
+				result[k] = binExtractFloat64(bin[binOffset : binOffset+8])
+				binOffset += 8
+			}
+
 		case bool:
 			if (flags & 0x01) != 0 {
 				result[k] = true
