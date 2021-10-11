@@ -21,7 +21,7 @@ func HTTPInboundHandler(port string) {
 	http.HandleFunc("/proxy", inboundWebProxyHandler)
 	http.HandleFunc("/robots.txt", inboundWebPingHandler)
 	http.HandleFunc("/env", inboundWebEnvHandler)
-	http.HandleFunc("/uplink", inboundWebLoRaWANHandler)
+	http.HandleFunc("/lorawan", inboundWebLoRaWANHandler)
 	http.HandleFunc("/", inboundWebRootHandler)
 
 	// HTTP

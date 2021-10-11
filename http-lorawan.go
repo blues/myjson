@@ -53,9 +53,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		return
 	}
 	if hdrFile == "" {
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte("X-File must be notefile ID"))
-		return
+		hdrFile = "data.qo"
 	}
 	if hdrTemplate == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
