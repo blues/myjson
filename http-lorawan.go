@@ -141,6 +141,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			httpRsp.Write([]byte("invalid JSON response from notehub"))
 			return
 		}
+		fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
 
 		// Create the device if it doesn't exist
 		if !strings.Contains(hubrsp.Err, "{device-noexist}") {
@@ -175,13 +176,13 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			httpRsp.Write([]byte("invalid JSON response from notehub"))
 			return
 		}
+		fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
 		if hubrsp.Err != "" {
 			break
 		}
 
 	}
 
-	fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
 	httpRsp.Write(hubrspJSON)
 
 	return
