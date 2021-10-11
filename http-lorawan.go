@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	hdrProduct := httpReq.Header.Get("X-Product")
 	hdrFile := httpReq.Header.Get("X-File")
 	hdrTemplate := httpReq.Header.Get("X-Template")
+	hdrTemplateFlagBytes := httpReq.Header.Get("X-TemplateFlagBytes")
 
 	// Validate formats
 	if hdrFormat != hdrFormatHelium && hdrFormat != hdrFormatTTN {
@@ -104,12 +106,17 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	}
 
 	// Convert payload to body
-	body := map[string]interface{}{}
-	body["payload"] = fmt.Sprintf("%x", payload)
+	flagBytes, _ := strconv.Atoi(hdrTemplateFlagBytes)
+	body, err := binDecodeFromTemplate(payload, payloadTemplate, flagBytes)
+	if err != nil {
+		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(fmt.Sprintf("can't decode uplink payload from template: %s\r\n", err)))
+		return
+	}
 
 	// Repeat this in case we need to create the device
 	var hubrspJSON []byte
-	for {
+	for i := 0; i < 2; i++ {
 
 		// Create the 'add note' request
 		hubreq := notehub.HubRequest{}
