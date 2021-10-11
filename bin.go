@@ -80,6 +80,21 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 			} else if isPointOne(numberType, 18) || isPointOne(numberType, 1) {
 				result[k] = binExtractFloat64(bin[binOffset : binOffset+8])
 				binOffset += 8
+			} else if numberType == 11 {
+				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
+				binOffset++
+			} else if numberType == 12 {
+				result[k] = binExtractInt16(bin[binOffset : binOffset+2])
+				binOffset += 2
+			} else if numberType == 13 {
+				result[k] = binExtractInt24(bin[binOffset : binOffset+3])
+				binOffset += 3
+			} else if numberType == 14 {
+				result[k] = binExtractInt32(bin[binOffset : binOffset+4])
+				binOffset += 4
+			} else if numberType == 18 {
+				result[k] = binExtractInt64(bin[binOffset : binOffset+8])
+				binOffset += 8
 			}
 
 		case bool:
