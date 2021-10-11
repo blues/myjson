@@ -14,6 +14,9 @@ import (
 
 func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagBytes int) (result map[string]interface{}, err error) {
 
+	// Preset result
+	result = map[string]interface{}{}
+
 	// Extract the flags from the end of the bin
 	flags := int64(0)
 	binLength := len(bin)
