@@ -35,6 +35,9 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 		// Behave differently based on type
 		switch t.(type) {
 
+		default:
+			fmt.Printf("OZZIE %T %t", t, t)
+
 		case string:
 			strLen := len(t.(string))
 			i, err2 := strconv.Atoi(t.(string))
@@ -46,7 +49,7 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 
 		case int:
 			numberType := t.(int)
-			// Integer
+			fmt.Printf("OZZIE: int %d\n", numberType)
 			switch numberType {
 			case 11:
 				result[k] = binExtractInt8(bin[binOffset : binOffset+1])
@@ -67,7 +70,7 @@ func binDecodeFromTemplate(bin []byte, template map[string]interface{}, flagByte
 
 		case float64:
 			numberType := t.(float64)
-			// Real
+			fmt.Printf("OZZIE: float %f\n", numberType)
 			if isPointOne(numberType, 12) {
 				result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
 				binOffset += 2
