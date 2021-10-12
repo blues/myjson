@@ -31,6 +31,8 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		httpRsp.WriteHeader(http.StatusMethodNotAllowed)
 	}
 
+	fmt.Printf("OZZIE: msg\n")
+
 	// Extract headers
 	hdrAPIKey := httpReq.Header.Get("X-Session-Token")
 	hdrFormat := httpReq.Header.Get("X-Format")
