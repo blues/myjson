@@ -82,6 +82,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		httpRsp.Write([]byte(fmt.Sprintf("can't read uplink message: %s\r\n", err)))
 		return
 	}
+	fmt.Printf("OZZIE msg: %s\n", uplinkMessageJSON)
 	if hdrFormat == hdrFormatHelium {
 		msg := heliumUplinkMessage{}
 		err = json.Unmarshal(uplinkMessageJSON, &msg)
@@ -104,6 +105,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		payload = msg.PayloadRaw
 		deviceUID = "dev:" + strings.ToLower(msg.DevID)
 	}
+	fmt.Printf("OZZIE payload: %x\n", payload)
 
 	// Convert payload to body
 	flagBytes, _ := strconv.Atoi(hdrTemplateFlagBytes)
