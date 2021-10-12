@@ -27,8 +27,8 @@ type heliumHotspot struct {
 	Lon               float64 `json:"long"`
 	Name              string  `json:"name"`
 	ReportedAtEpochMs int64   `json:"reported_at"`
-	RSSI              int32   `json:"rssi"`
-	SNR               int32   `json:"snr"`
+	RSSI              float64 `json:"rssi"`
+	SNR               float64 `json:"snr"`
 	Spreading         string  `json:"spreading"`
 	Status            string  `json:"status"`
 }
