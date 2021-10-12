@@ -49,6 +49,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	if hdrHub == "" {
 		hdrHub = notehubURL
 	}
+	if !strings.Contains(hdrHub, "://") {
+		hdrHub = "https://" + hdrHub
+	}
 	if hdrProduct == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
 		httpRsp.Write([]byte("X-Product must be Notehub ProductUID\r\n"))
