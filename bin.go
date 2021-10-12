@@ -7,7 +7,6 @@ package main
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -66,8 +65,6 @@ func binDecodeFromTemplate(bin []byte, template string, flagBytes int) (result m
 			}
 		}
 
-		fmt.Printf("OZZIE before: %s,%v %d: %v\n", k, t, binOffset, result)
-
 		if isString {
 
 			strLen := int(f)
@@ -84,8 +81,6 @@ func binDecodeFromTemplate(bin []byte, template string, flagBytes int) (result m
 			flags = flags >> 1
 
 		} else {
-
-			fmt.Printf("OZZIE: float %f\n", f)
 
 			if isPointOne(f, 12) {
 				result[k] = binExtractFloat16(bin[binOffset : binOffset+2])
@@ -115,11 +110,9 @@ func binDecodeFromTemplate(bin []byte, template string, flagBytes int) (result m
 
 		}
 
-		fmt.Printf("OZZIE after: %s,%v %d: %v\n", k, t, binOffset, result)
 	}
 
 	// Done
-	fmt.Printf("OZZIE exit: %v\n", result)
 	return
 
 }

@@ -82,7 +82,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		httpRsp.Write([]byte(fmt.Sprintf("can't read uplink message: %s\r\n", err)))
 		return
 	}
-	fmt.Printf("OZZIE msg: %s\n", uplinkMessageJSON)
 	if hdrFormat == hdrFormatHelium {
 		msg := heliumUplinkMessage{}
 		err = json.Unmarshal(uplinkMessageJSON, &msg)
@@ -105,7 +104,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		payload = msg.PayloadRaw
 		deviceUID = "dev:" + strings.ToLower(msg.DevID)
 	}
-	fmt.Printf("OZZIE payload: %x\n", payload)
 
 	// Convert payload to body
 	flagBytes, _ := strconv.Atoi(hdrTemplateFlagBytes)
@@ -130,7 +128,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hubreqJSON, err := json.Marshal(hubreq)
 
 		// Add the note to the notehub
-		fmt.Printf("OZZIE: to %s\n%s\n", hdrHub, string(hubreqJSON))
 		hreq, _ := http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
 		hreq.Header.Set("User-Agent", "notecard.live")
 		hreq.Header.Set("Content-Type", "application/json")
@@ -150,7 +147,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			httpRsp.Write([]byte("invalid JSON response from notehub"))
 			return
 		}
-		fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
 
 		// Create the device if it doesn't exist
 		if !strings.Contains(hubrsp.Err, "{device-noexist}") {
@@ -165,7 +161,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hubreq.DeviceUID = deviceUID
 		hubreq.ProductUID = hdrProduct
 		hubreqJSON, err = json.Marshal(hubreq)
-		fmt.Printf("OZZIE: to %s\n%s\n", hdrHub, string(hubreqJSON))
 		hreq, _ = http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
 		hreq.Header.Set("User-Agent", "notecard.live")
 		hreq.Header.Set("Content-Type", "application/json")
@@ -185,7 +180,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			httpRsp.Write([]byte("invalid JSON response from notehub"))
 			return
 		}
-		fmt.Printf("%s\n", string(hubrspJSON)) // OZZIE
 		if hubrsp.Err != "" {
 			break
 		}
