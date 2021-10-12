@@ -40,7 +40,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	hdrTemplate := httpReq.Header.Get("X-Template")
 	hdrTemplateFlagBytes := httpReq.Header.Get("X-TemplateFlagBytes")
 
-	fmt.Printf("OZZIE lorawan: received\n")
+	fmt.Printf("lorawan: received uplink message\n")
 
 	// Validate formats
 	if hdrFormat != hdrFormatHelium && hdrFormat != hdrFormatTTN {
