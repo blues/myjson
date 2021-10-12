@@ -40,7 +40,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	hdrTemplate := httpReq.Header.Get("X-Template")
 	hdrTemplateFlagBytes := httpReq.Header.Get("X-TemplateFlagBytes")
 
-	fmt.Printf("lorawan: received\n")
+	fmt.Printf("OZZIE lorawan: received\n")
 
 	// Validate formats
 	if hdrFormat != hdrFormatHelium && hdrFormat != hdrFormatTTN {
@@ -102,8 +102,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		err = json.Unmarshal(uplinkMessageJSON, &msg)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			msg := fmt.Sprintf("can't decode Helium uplink message: %s\r\n", err)
+			msg := fmt.Sprintf("can't decode Helium uplink message: %s\r\n%s\r\n", err, uplinkMessageJSON)
 			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 		payload = msg.Payload
@@ -128,7 +129,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	body, err := binDecodeFromTemplate(payload, hdrTemplate, flagBytes)
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		msg := fmt.Sprintf("can't decode uplink payload from template: %s\r\n", err)
+		msg := fmt.Sprintf("can't decode uplink payload from template: %s\r\n%s\r\n", err, hdrTemplate)
 		httpRsp.Write([]byte(msg))
 		fmt.Printf("lorawan: %s\n", msg)
 		return
@@ -153,9 +154,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hreq.Header.Set("Content-Type", "application/json")
 		hreq.Header.Set("X-Session-Token", hdrAPIKey)
 		httpClient := &http.Client{Timeout: time.Second * 10}
-		fmt.Printf("lorawan: OZZIE do\n")
 		hrsp, err := httpClient.Do(hreq)
-		fmt.Printf("lorawan: OZZIE done\n")
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
 			msg := fmt.Sprintf("%s says: %s", hdrHub, err)
