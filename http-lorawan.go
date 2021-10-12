@@ -40,6 +40,8 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	hdrTemplate := httpReq.Header.Get("X-Template")
 	hdrTemplateFlagBytes := httpReq.Header.Get("X-TemplateFlagBytes")
 
+	fmt.Printf("lorawan: received\n")
+
 	// Validate formats
 	if hdrFormat != hdrFormatHelium && hdrFormat != hdrFormatTTN {
 		httpRsp.WriteHeader(http.StatusBadRequest)
@@ -151,7 +153,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hreq.Header.Set("Content-Type", "application/json")
 		hreq.Header.Set("X-Session-Token", hdrAPIKey)
 		httpClient := &http.Client{Timeout: time.Second * 10}
+		fmt.Printf("lorawan: OZZIE do\n")
 		hrsp, err := httpClient.Do(hreq)
+		fmt.Printf("lorawan: OZZIE done\n")
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
 			msg := fmt.Sprintf("%s says: %s", hdrHub, err)
