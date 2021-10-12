@@ -43,7 +43,7 @@ func binDecodeFromTemplate(bin []byte, template string, flagBytes int) (result m
 	binOffset := 0
 	for i := 0; i < len(t)/2; i++ {
 
-		k := t[i*2]
+		k := strings.ReplaceAll(t[i*2], "\"", "")
 		v := t[i*2+1]
 
 		isString := false
