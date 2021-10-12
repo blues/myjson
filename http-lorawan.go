@@ -31,8 +31,6 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		httpRsp.WriteHeader(http.StatusMethodNotAllowed)
 	}
 
-	fmt.Printf("OZZIE: msg\n")
-
 	// Extract headers
 	hdrAPIKey := httpReq.Header.Get("X-Session-Token")
 	hdrFormat := httpReq.Header.Get("X-Format")
@@ -45,7 +43,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	// Validate formats
 	if hdrFormat != hdrFormatHelium && hdrFormat != hdrFormatTTN {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte("X-Format must uniquely identify the JSON schema of inbound LoRaWAN messages\r\n"))
+		msg := "X-Format must uniquely identify the JSON schema of inbound LoRaWAN messages\r\n"
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 	if hdrHub == "" {
@@ -56,7 +56,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	}
 	if hdrProduct == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte("X-Product must be Notehub ProductUID\r\n"))
+		msg := "X-Product must be Notehub ProductUID\r\n"
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 	if !strings.HasPrefix(hdrProduct, "product:") {
@@ -67,14 +69,18 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	}
 	if hdrTemplate == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte("X-Template must be the JSON Notefile Template describing the LoRaWAN payload\r\n"))
+		msg := "X-Template must be the JSON Notefile Template describing the LoRaWAN payload\r\n"
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 	payloadTemplate := map[string]interface{}{}
 	err := json.Unmarshal([]byte(hdrTemplate), &payloadTemplate)
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(fmt.Sprintf("X-Template doesn't appear to be valid JSON: %s\r\n", err)))
+		msg := fmt.Sprintf("X-Template doesn't appear to be valid JSON: %s\r\n", err)
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 
@@ -84,7 +90,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	uplinkMessageJSON, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(fmt.Sprintf("can't read uplink message: %s\r\n", err)))
+		msg := fmt.Sprintf("can't read uplink message: %s\r\n", err)
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 	if hdrFormat == hdrFormatHelium {
@@ -92,7 +100,8 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		err = json.Unmarshal(uplinkMessageJSON, &msg)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte(fmt.Sprintf("can't decode Helium uplink message: %s\r\n", err)))
+			msg := fmt.Sprintf("can't decode Helium uplink message: %s\r\n", err)
+			httpRsp.Write([]byte(msg))
 			return
 		}
 		payload = msg.Payload
@@ -103,7 +112,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		err = json.Unmarshal(uplinkMessageJSON, &msg)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte(fmt.Sprintf("can't decode TTN uplink message: %s\r\n", err)))
+			msg := fmt.Sprintf("can't decode TTN uplink message: %s\r\n", err)
+			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 		payload = msg.PayloadRaw
@@ -115,7 +126,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	body, err := binDecodeFromTemplate(payload, hdrTemplate, flagBytes)
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(fmt.Sprintf("can't decode uplink payload from template: %s\r\n", err)))
+		msg := fmt.Sprintf("can't decode uplink payload from template: %s\r\n", err)
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
 		return
 	}
 
@@ -141,7 +154,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hrsp, err := httpClient.Do(hreq)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte(fmt.Sprintf("%s says: %s", hdrHub, err)))
+			msg := fmt.Sprintf("%s says: %s", hdrHub, err)
+			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
@@ -149,7 +164,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		err = json.Unmarshal(hubrspJSON, &hubrsp)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte("invalid JSON response from notehub"))
+			msg := "invalid JSON response from notehub"
+			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 
@@ -174,7 +191,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hrsp, err = httpClient.Do(hreq)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte(fmt.Sprintf("on device provisioning, %s says: %s", hdrHub, err)))
+			msg := fmt.Sprintf("on device provisioning, %s says: %s", hdrHub, err)
+			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
@@ -182,7 +201,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		err = json.Unmarshal(hubrspJSON, &hubrsp)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
-			httpRsp.Write([]byte("invalid JSON response from notehub"))
+			msg := "invalid JSON response from notehub"
+			httpRsp.Write([]byte(msg))
+			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
 		if hubrsp.Err != "" {
@@ -192,6 +213,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	}
 
 	httpRsp.Write(hubrspJSON)
+	fmt.Printf("lorawan: %s\n", hubrspJSON)
 
 	return
 
