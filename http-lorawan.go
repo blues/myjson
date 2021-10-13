@@ -18,6 +18,9 @@ import (
 	"github.com/blues/note-go/notehub"
 )
 
+// Debug
+const debugVerbose = true
+
 // Known header formats
 const hdrFormatHelium = "helium"
 const hdrFormatTTN = "ttn"
@@ -90,6 +93,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	deviceUID := ""
 	payload := []byte{}
 	uplinkMessageJSON, err := ioutil.ReadAll(httpReq.Body)
+	if debugVerbose {
+		fmt.Printf("lorawan: received:\n%s\n", uplinkMessageJSON)
+	}
 	if err != nil {
 		httpRsp.WriteHeader(http.StatusBadRequest)
 		msg := fmt.Sprintf("can't read uplink message: %s\r\n", err)
@@ -107,6 +113,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
+		if debugVerbose {
+			fmt.Printf("lorawan: unmarshaled:\n%v\n", msg)
+		}
 		payload = msg.Payload
 		deviceUID = "dev:" + strings.ToLower(msg.DeviceEUI)
 	}
@@ -119,6 +128,9 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			httpRsp.Write([]byte(msg))
 			fmt.Printf("lorawan: %s\n", msg)
 			return
+		}
+		if debugVerbose {
+			fmt.Printf("lorawan: unmarshaled:\n%v\n", msg)
 		}
 		payload = msg.PayloadRaw
 		deviceUID = "dev:" + strings.ToLower(msg.DevID)
