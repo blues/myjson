@@ -57,15 +57,15 @@ type ttnNetworkIDs struct {
 }
 
 type ttnUplink struct {
-	SessionKey      string        `json:"session_key_id,omitempty"`
-	FPort           uint32        `json:"f_port"`
-	FCount          uint32        `json:"f_cnt"`
-	Payload         []byte        `json:"frm_payload,omitempty"`
-	RxMetadata      ttnRxMetadata `json:"rx_metadata,omitempty"`
-	Settings        ttnSettings   `json:"settings,omitempty"`
-	ReceivedAt      string        `json:"received_at,omitempty"`
-	ConsumedAirtime string        `json:"consumed_airtime,omitempty"`
-	NetworkIDs      ttnNetworkIDs `json:"network_ids,omitempty"`
+	SessionKey      string          `json:"session_key_id,omitempty"`
+	FPort           uint32          `json:"f_port"`
+	FCount          uint32          `json:"f_cnt"`
+	Payload         []byte          `json:"frm_payload,omitempty"`
+	RxMetadata      []ttnRxMetadata `json:"rx_metadata,omitempty"`
+	Settings        ttnSettings     `json:"settings,omitempty"`
+	ReceivedAt      string          `json:"received_at,omitempty"`
+	ConsumedAirtime string          `json:"consumed_airtime,omitempty"`
+	NetworkIDs      ttnNetworkIDs   `json:"network_ids,omitempty"`
 }
 
 type ttnUplinkMessage struct {
