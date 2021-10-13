@@ -132,8 +132,8 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		if debugVerbose {
 			fmt.Printf("lorawan: unmarshaled:\n%v\n", msg)
 		}
-		payload = msg.PayloadRaw
-		deviceUID = "dev:" + strings.ToLower(msg.DevID)
+		payload = msg.UplinkMessage.Payload
+		deviceUID = "dev:" + strings.ToLower(msg.EndDeviceIDs.DevEUI)
 	}
 
 	// Convert payload to body
