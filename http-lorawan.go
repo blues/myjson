@@ -19,7 +19,7 @@ import (
 )
 
 // Debug
-const debugVerbose = true
+const debugVerbose = false
 
 // Known header formats
 const hdrFormatHelium = "helium"
@@ -117,7 +117,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			fmt.Printf("lorawan: unmarshaled:\n%v\n", msg)
 		}
 		payload = msg.Payload
-		deviceUID = "dev:" + strings.ToLower(msg.DeviceEUI)
+		deviceUID = strings.ToLower(msg.DeviceEUI)
 	}
 	if hdrFormat == hdrFormatTTN {
 		msg := ttnUplinkMessage{}
@@ -133,8 +133,18 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			fmt.Printf("lorawan: unmarshaled:\n%v\n", msg)
 		}
 		payload = msg.UplinkMessage.Payload
-		deviceUID = "dev:" + strings.ToLower(msg.EndDeviceIDs.DevEUI)
+		deviceUID = strings.ToLower(msg.EndDeviceIDs.DevEUI)
 	}
+
+	// Exit if the one necessary element isn't there
+	if deviceUID == "" {
+		httpRsp.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf("can't determine devEUI so that we can construct DeviceUID\r\n")
+		httpRsp.Write([]byte(msg))
+		fmt.Printf("lorawan: %s\n", msg)
+		return
+	}
+	deviceUID = "dev:" + deviceUID
 
 	// Convert payload to body
 	flagBytes, _ := strconv.Atoi(hdrTemplateFlagBytes)
