@@ -14,6 +14,9 @@ import (
 // ServiceConfig is the service configuration file format
 type ServiceConfig struct {
 
+	// Twilio SMS "from" phone number
+	TwilioSMS string `json:"twilio_sms,omitempty"`
+
 	// Twilio SID and Secret access key
 	TwilioSID string `json:"twilio_sid,omitempty"`
 	TwilioSAK string `json:"twilio_sak,omitempty"`
