@@ -79,7 +79,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		subject := alert.Text
 		to := mail.NewEmail("", toEmail)
 		plainTextContent := alert.Body
-		htmlContent := ""
+		htmlContent := plainTextContent
 		message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 		client := sendgrid.NewSendClient(Config.TwilioSendgridAPIKey)
 		response, err := client.Send(message)
