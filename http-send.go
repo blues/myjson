@@ -9,21 +9,38 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/blues/note-go/note"
 )
+
+// AlertMessage
+type AlertMessage struct {
+	SMS   []string   `json:"sms"`
+	Email []string   `json:"email"`
+	Text  string     `json:"text"`
+	Body  string     `json:"body"`
+	Event note.Event `json:"event"`
+}
 
 // Ping handler
 func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the body if supplied
-	reqJSON, err := ioutil.ReadAll(httpReq.Body)
+	alertJSON, err := ioutil.ReadAll(httpReq.Body)
 	if err != nil {
-		reqJSON = []byte("{}")
+		alertJSON = []byte("{}")
 	}
-	_ = reqJSON
+	_ = alertJSON
 
 	// Debug
+	var alert AlertMessage
+	err = note.JSONUnmarshal(alertJSON, &alert)
+	if err != nil {
+		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+	}
+
 	fmt.Printf("*****\n")
-	fmt.Printf("%s\n", reqJSON)
+	fmt.Printf("%v\n", alert)
 	fmt.Printf("*****\n")
 
 	return
