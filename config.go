@@ -14,18 +14,23 @@ import (
 // ServiceConfig is the service configuration file format
 type ServiceConfig struct {
 
-	// Twilio SMS "from" phone number
-	TwilioSMS string `json:"twilio_sms,omitempty"`
+	// Twilio "from" phone number & email (addr & name)
+	TwilioSMS   string `json:"twilio_sms,omitempty"`
+	TwilioEmail string `json:"twilio_email,omitempty"`
+	TwilioFrom  string `json:"twilio_from,omitempty"`
 
 	// Twilio SID and Secret access key
 	TwilioSID string `json:"twilio_sid,omitempty"`
 	TwilioSAK string `json:"twilio_sak,omitempty"`
+
+	// Twilio Sendgrid API key
+	TwilioSendgridAPIKey string `json:"twilio_sendgrid_api_key,omitempty"`
 }
 
 // ConfigPath (here for golint)
 const ConfigPath = "/config/config.json"
 
-// ServiceConfig is our configuration, read out of a file for security reasons
+// Config is our configuration, read out of a file for security reasons
 var Config ServiceConfig
 
 // ServiceReadConfig gets the current value of the service config

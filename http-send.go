@@ -13,9 +13,11 @@ import (
 	"strings"
 
 	"github.com/blues/note-go/note"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-// AlertMessage
+// AlertMessage is the format of a message coming in from the route
 type AlertMessage struct {
 	SMS   []string   `json:"sms"`
 	Email []string   `json:"email"`
@@ -41,7 +43,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 	}
 
-	// Send twilio messages
+	// Send twilio SMS messages
 	// https://www.twilio.com/blog/2014/06/sending-sms-from-your-go-app.html
 	for _, toSMS := range alert.SMS {
 		accountSid := Config.TwilioSID
@@ -67,6 +69,24 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 			fmt.Printf("send: %s: %s\n", toSMS, bodyBytes)
 		} else {
 			fmt.Printf("send: %s: %s\n", toSMS, resp.Status)
+		}
+	}
+
+	// Send twilio/sendgrid Email messages
+	// https://docs.sendgrid.com/for-developers/sending-email/v3-go-code-example
+	for _, toEmail := range alert.Email {
+		from := mail.NewEmail(Config.TwilioFrom, Config.TwilioEmail)
+		subject := alert.Text
+		to := mail.NewEmail("", toEmail)
+		plainTextContent := alert.Body
+		htmlContent := ""
+		message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+		client := sendgrid.NewSendClient(Config.TwilioSendgridAPIKey)
+		response, err := client.Send(message)
+		if err != nil {
+			fmt.Printf("send email to %s: %s\n", toEmail, err)
+		} else {
+			fmt.Printf("send email to %s: %d %s %s\n", toEmail, response.StatusCode, response.Body, response.Headers)
 		}
 	}
 
