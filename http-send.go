@@ -40,7 +40,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	fmt.Printf("*****\n")
-	fmt.Printf("%s\n", alertJSON)
+	fmt.Printf("%s %s\n", Config.TwilioSID, Config.TwilioSAK)
 	fmt.Printf("%v\n", alert)
 	fmt.Printf("*****\n")
 
