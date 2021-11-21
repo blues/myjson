@@ -76,6 +76,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	// https://docs.sendgrid.com/for-developers/sending-email/v3-go-code-example
 	for _, toEmail := range alert.Email {
 		from := mail.NewEmail(Config.TwilioFrom, Config.TwilioEmail)
+		fmt.Printf("%s %s %v\n", Config.TwilioFrom, Config.TwilioEmail, from)
 		subject := alert.Text
 		to := mail.NewEmail("", toEmail)
 		if subject == "" {
