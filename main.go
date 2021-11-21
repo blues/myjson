@@ -23,6 +23,9 @@ const configMaxPosts = 1000
 // Main service entry point
 func main() {
 
+	// Read creds
+	ServiceReadConfig()
+
 	// Compute folder location
 	configDataDirectory = os.Getenv("HOME") + configDataDirectoryBase
 
