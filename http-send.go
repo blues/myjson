@@ -78,8 +78,14 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		from := mail.NewEmail(Config.TwilioFrom, Config.TwilioEmail)
 		subject := alert.Text
 		to := mail.NewEmail("", toEmail)
+		if subject == "" {
+			subject = "(no alert text specified)"
+		}
 		plainTextContent := alert.Body
-		htmlContent := plainTextContent
+		if plainTextContent == "" {
+			plainTextContent = subject
+		}
+		htmlContent := ""
 		message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 		client := sendgrid.NewSendClient(Config.TwilioSendgridAPIKey)
 		response, err := client.Send(message)
