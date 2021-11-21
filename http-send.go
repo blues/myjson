@@ -40,6 +40,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	fmt.Printf("*****\n")
+	fmt.Printf("%s\n", alertJSON)
 	fmt.Printf("%v\n", alert)
 	fmt.Printf("*****\n")
 
