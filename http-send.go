@@ -62,7 +62,12 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		req.Header.Add("Accept", "application/json")
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		resp, _ := client.Do(req)
-		fmt.Printf("send: %s: %s\n", toSMS, resp.Status)
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			fmt.Printf("send: %s: %s\n", toSMS, bodyBytes)
+		} else {
+			fmt.Printf("send: %s: %s\n", toSMS, resp.Status)
+		}
 	}
 
 	return
