@@ -55,7 +55,9 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	var alert AlertMessage
 	err = note.JSONUnmarshal(alertJSON, &alert)
 	if err != nil {
+		httpRsp.WriteHeader(http.StatusBadRequest)
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+		return
 	}
 
 	// Trace
