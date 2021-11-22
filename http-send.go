@@ -88,7 +88,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		resp, _ := client.Do(req)
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 			bodyBytes, _ := ioutil.ReadAll(resp.Body)
-			fmt.Printf("send: %s (%d): %s\n", toSMS, resp.Status, bodyBytes)
+			fmt.Printf("send: %s (%s): %s\n", toSMS, resp.Status, bodyBytes)
 		} else {
 			fmt.Printf("send: %s: %s\n", toSMS, resp.Status)
 		}
