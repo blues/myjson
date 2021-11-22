@@ -58,6 +58,9 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 	}
 
+	// Trace
+	fmt.Printf("%s\n", alertJSON)
+
 	// Send twilio SMS messages
 	// https://www.twilio.com/blog/2014/06/sending-sms-from-your-go-app.html
 	for _, toSMS := range alert.SMS {
