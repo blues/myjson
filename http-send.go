@@ -68,6 +68,12 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	smsRecipients := strings.Split(alert.SMS, ",")
 	for _, toSMS := range smsRecipients {
 
+		// Skip blank
+		toSMS = strings.TrimSpace(toSMS)
+		if toSMS == "" {
+			continue
+		}
+
 		// Ensure that we don't send duplicates
 		if shouldBeSuppressed(toSMS, "", alert.Text, alert.Minutes) {
 			continue
@@ -105,6 +111,12 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	// https://docs.sendgrid.com/for-developers/sending-email/v3-go-code-example
 	emailRecipients := strings.Split(alert.Email, ",")
 	for _, toEmail := range emailRecipients {
+
+		// Skip blank
+		toEmail = strings.TrimSpace(toEmail)
+		if toEmail == "" {
+			continue
+		}
 
 		// Ensure that we don't send duplicates
 		if shouldBeSuppressed("", toEmail, alert.Text, alert.Minutes) {
