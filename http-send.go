@@ -21,8 +21,8 @@ import (
 
 // AlertMessage is the format of a message coming in from the route
 type AlertMessage struct {
-	SMS     []string   `json:"sms"`
-	Email   []string   `json:"email"`
+	SMS     string     `json:"sms"`
+	Email   string     `json:"email"`
 	Text    string     `json:"text"`
 	Body    string     `json:"body"`
 	Minutes uint32     `json:"minutes"`
@@ -65,7 +65,8 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Send twilio SMS messages
 	// https://www.twilio.com/blog/2014/06/sending-sms-from-your-go-app.html
-	for _, toSMS := range alert.SMS {
+	smsRecipients := strings.Split(alert.SMS, ",")
+	for _, toSMS := range smsRecipients {
 
 		// Ensure that we don't send duplicates
 		if shouldBeSuppressed(toSMS, "", alert.Text, alert.Minutes) {
@@ -102,7 +103,8 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Send twilio/sendgrid Email messages
 	// https://docs.sendgrid.com/for-developers/sending-email/v3-go-code-example
-	for _, toEmail := range alert.Email {
+	emailRecipients := strings.Split(alert.Email, ",")
+	for _, toEmail := range emailRecipients {
 
 		// Ensure that we don't send duplicates
 		if shouldBeSuppressed("", toEmail, alert.Text, alert.Minutes) {
