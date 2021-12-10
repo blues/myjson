@@ -75,8 +75,12 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		}
 
 		// Ensure that we don't send duplicates
-		if shouldBeSuppressed(toSMS, "", alert.Text, alert.Minutes) {
-			continue
+		if alert.Minutes > 0 {
+			suppress, expiresSecs := shouldBeSuppressed(toSMS, "", alert.Text, alert.Minutes)
+			if suppress {
+				fmt.Printf("SMS to %s expires in %d mins\n", toSMS, (expiresSecs/60)+1)
+				continue
+			}
 		}
 
 		// Send the SMS
@@ -119,8 +123,12 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		}
 
 		// Ensure that we don't send duplicates
-		if shouldBeSuppressed("", toEmail, alert.Text, alert.Minutes) {
-			continue
+		if alert.Minutes > 0 {
+			suppress, expiresSecs := shouldBeSuppressed("", toEmail, alert.Text, alert.Minutes)
+			if suppress {
+				fmt.Printf("message to %s expires in %d mins\n", toEmail, (expiresSecs/60)+1)
+				continue
+			}
 		}
 
 		// Send the email
@@ -152,7 +160,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 }
 
 // See if a message should be suppressed
-func shouldBeSuppressed(toSMS string, toEmail string, text string, minutes uint32) (suppress bool) {
+func shouldBeSuppressed(toSMS string, toEmail string, text string, minutes uint32) (suppress bool, expiresSecs int64) {
 
 	// Rebuild the list of messages to be suppressed
 	smLock.Lock()
@@ -160,10 +168,14 @@ func shouldBeSuppressed(toSMS string, toEmail string, text string, minutes uint3
 
 	// See if we can find an unexpired entry, and garbage collect
 	now := time.Now()
+	expires := time.Now()
 	for _, sm := range suppressMessages {
 		if now.Before(sm.expires) {
 			newSM = append(newSM, sm)
 			if sm.text == text {
+				if sm.expires.After(expires) {
+					expires = sm.expires
+				}
 				if sm.sms != "" && sm.sms == toSMS {
 					suppress = true
 				}
@@ -182,6 +194,8 @@ func shouldBeSuppressed(toSMS string, toEmail string, text string, minutes uint3
 		sm.expires = now.Add(time.Minute * time.Duration(minutes))
 		sm.text = text
 		newSM = append(newSM, sm)
+	} else {
+		expiresSecs = expires.Unix() - now.Unix()
 	}
 
 	// Update the list and exit
