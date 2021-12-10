@@ -74,6 +74,9 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		if toSMS == "" {
 			continue
 		}
+		if !strings.HasPrefix(toSMS, "+") {
+			toSMS = "+" + toSMS
+		}
 
 		// Ensure that we don't send duplicates
 		if alert.Minutes > 0 {
