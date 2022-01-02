@@ -21,6 +21,9 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 	_ = reqBody
 
+	// Echo
+	fmt.Printf("ECHO %d bytes of %s\n", len(reqBody), httpReq.Header.Get("Content-Type"))
+
 	// Mirror the content type and the content
 	httpRsp.Header().Set("Content-Type", httpReq.Header.Get("Content-Type"))
 	httpRsp.WriteHeader(http.StatusOK)
