@@ -65,6 +65,4 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 	// Send the intended json to the live monitor, if anyone is watching
 	watcherPut(target, payloadJSONIndented)
 
-	return
-
 }

@@ -159,8 +159,6 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	}
 
-	return
-
 }
 
 // See if a message should be suppressed

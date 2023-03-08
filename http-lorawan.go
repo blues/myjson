@@ -139,7 +139,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	// Exit if the one necessary element isn't there
 	if deviceUID == "" {
 		httpRsp.WriteHeader(http.StatusBadRequest)
-		msg := fmt.Sprintf("can't determine devEUI so that we can construct DeviceUID\r\n")
+		msg := "can't determine devEUI so that we can construct DeviceUID\r\n"
 		httpRsp.Write([]byte(msg))
 		fmt.Printf("lorawan: %s\n", msg)
 		return
@@ -168,7 +168,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hubreq.NotefileID = hdrFile
 		hubreq.ProductUID = hdrProduct
 		hubreq.DeviceUID = deviceUID
-		hubreqJSON, err := json.Marshal(hubreq)
+		hubreqJSON, _ := json.Marshal(hubreq)
 
 		// Add the note to the notehub
 		hreq, _ := http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
@@ -207,7 +207,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 		hubreq.Provision = true
 		hubreq.DeviceUID = deviceUID
 		hubreq.ProductUID = hdrProduct
-		hubreqJSON, err = json.Marshal(hubreq)
+		hubreqJSON, _ = json.Marshal(hubreq)
 		hreq, _ = http.NewRequest("POST", hdrHub, bytes.NewBuffer(hubreqJSON))
 		hreq.Header.Set("User-Agent", "notecard.live")
 		hreq.Header.Set("Content-Type", "application/json")
@@ -239,7 +239,5 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 
 	httpRsp.Write(hubrspJSON)
 	fmt.Printf("lorawan: %s\n", hubrspJSON)
-
-	return
 
 }

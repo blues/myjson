@@ -36,9 +36,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the target
 	rawTarget, args := HTTPArgs(httpReq, "")
-	if strings.HasSuffix(rawTarget, "/") {
-		rawTarget = strings.TrimSuffix(rawTarget, "/")
-	}
+	rawTarget = strings.TrimSuffix(rawTarget, "/")
 	target := cleanTarget(rawTarget)
 
 	// Exit if just the favicon
@@ -135,7 +133,6 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	httpRsp.Write([]byte(method + " " + target + " ???"))
-	return
 
 }
 

@@ -67,11 +67,11 @@ func inputHandler() {
 
 		case "":
 
-		default:
-			fmt.Printf("Unrecognized: '%s'\n", message)
-
 		case "q":
 			os.Exit(0)
+
+		default:
+			fmt.Printf("Unrecognized: '%s'\n", message)
 
 		}
 
@@ -84,7 +84,7 @@ func inputHandler() {
 
 // Our app's signal handler
 func signalHandler() {
-	ch := make(chan os.Signal)
+	ch := make(chan os.Signal, 2)
 	signal.Notify(ch, syscall.SIGTERM)
 	signal.Notify(ch, syscall.SIGINT)
 	signal.Notify(ch, syscall.SIGSEGV)
@@ -94,7 +94,7 @@ func signalHandler() {
 			fmt.Printf("*** Exiting because of SIGNAL \n")
 			os.Exit(0)
 		case syscall.SIGTERM:
-			break
+			return
 		}
 	}
 }

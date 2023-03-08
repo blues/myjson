@@ -6,9 +6,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // The active watcher data structure
@@ -57,8 +58,6 @@ func watcherDelete(watcherID string) {
 		}
 	}
 	watcherLock.Unlock()
-
-	return
 
 }
 
@@ -111,7 +110,5 @@ func watcherPut(target string, data []byte) {
 		}
 	}
 	watcherLock.Unlock()
-
-	return
 
 }

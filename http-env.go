@@ -58,7 +58,6 @@ func inboundWebEnvHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	fmt.Fprintf(httpRsp, "only GET and POST methods are supported")
-	return
 
 }
 

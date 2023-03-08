@@ -63,6 +63,5 @@ func watch(httpRsp http.ResponseWriter, httpReq *http.Request, target string) {
 
 	// Done
 	watcherDelete(watcherID)
-	return
 
 }

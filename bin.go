@@ -183,6 +183,3 @@ func binExtractFloat64(bin []byte) float64 {
 	bits := binary.LittleEndian.Uint64(bin)
 	return math.Float64frombits(bits)
 }
-func binExtractBytes(bin []byte) []byte {
-	return bin
-}

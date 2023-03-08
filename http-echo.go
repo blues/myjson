@@ -23,7 +23,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// If we're echoing URL instead, wrap it
 	if httpReq.RequestURI != "/echo" {
-		reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.URL.Path, string(reqBody)))
+		reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.RequestURI, string(reqBody)))
 	}
 
 	// Echo
@@ -33,7 +33,5 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	httpRsp.Header().Set("Content-Type", httpReq.Header.Get("Content-Type"))
 	httpRsp.WriteHeader(http.StatusOK)
 	httpRsp.Write(reqBody)
-
-	return
 
 }

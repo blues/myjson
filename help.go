@@ -15,6 +15,4 @@ func help(httpRsp http.ResponseWriter) {
 
 	httpRsp.Write([]byte(helpText))
 
-	return
-
 }

@@ -87,7 +87,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 				break
 			}
 			if i > maxRetries {
-				httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"proxy: cannot communicate with notecard {io}\"}")))
+				httpRsp.Write([]byte("{\"err\":\"proxy: cannot communicate with notecard {io}\"}"))
 				return
 			}
 
