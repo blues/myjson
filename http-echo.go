@@ -22,12 +22,8 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	_ = reqBody
 
 	// If we're echoing URL instead, wrap it
-	if false {
-		if httpReq.URL.Path != "" {
-			reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.URL.Path, string(reqBody)))
-		}
-	} else {
-		fmt.Printf("%+v\n", httpReq)
+	if httpReq.RequestURI != "/echo" {
+		reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.URL.Path, string(reqBody)))
 	}
 
 	// Echo
