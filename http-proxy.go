@@ -5,18 +5,19 @@
 package main
 
 import (
-	"fmt"
 	"bytes"
-	"time"
-	"strings"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"encoding/json"
+	"strings"
+	"time"
 )
 
 // Rate limiting because of Balena's proxy
 const throttleMs = 250
+
 var throttleTime int64
 
 // Proxy handler so that we may make external references from local pages without CORS issues.	Note that
@@ -25,8 +26,8 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 
 	// Throttle because of Balena's rate limit
 	msSinceLastTransaction := (time.Now().UnixNano() - throttleTime) / 1000000
-	if (msSinceLastTransaction < throttleMs) {
-		time.Sleep(time.Duration(throttleMs - msSinceLastTransaction) * time.Millisecond)
+	if msSinceLastTransaction < throttleMs {
+		time.Sleep(time.Duration(throttleMs-msSinceLastTransaction) * time.Millisecond)
 	}
 	throttleTime = time.Now().UnixNano()
 
@@ -51,7 +52,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	var rspbuf []byte
 	var resp *http.Response
 	var maxRetries = 5
-	for i:=0;;i++ {
+	for i := 0; ; i++ {
 
 		var req *http.Request
 		req, err = http.NewRequest(httpReq.Method, proxyURL, bytes.NewBuffer(reqBody))
@@ -61,7 +62,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 
-		httpclient := &http.Client{	Timeout: time.Second * 15 }
+		httpclient := &http.Client{Timeout: time.Second * 15}
 		resp, err = httpclient.Do(req)
 		if err != nil {
 			fmt.Printf("proxy DO err: %s\n", err)

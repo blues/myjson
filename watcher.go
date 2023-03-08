@@ -6,18 +6,19 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"sync"
 	"github.com/google/uuid"
+	"sync"
+	"time"
 )
 
 // The active watcher data structure
 type activeWatcher struct {
-	watcherID		string
-	target			string
-	event			*Event
-	buf				[]byte
+	watcherID string
+	target    string
+	event     *Event
+	buf       []byte
 }
+
 var watchers = []activeWatcher{}
 var watcherLock sync.RWMutex
 
@@ -30,12 +31,12 @@ func watcherCreate(target string) (watcherID string) {
 	watcher.watcherID = watcherID
 	watcher.target = target
 	watcher.event = EventNew()
-	
+
 	watcherLock.Lock()
 	watchers = append(watchers, watcher)
 	fmt.Printf("watchers: %s added (now %d)\n", watcher.target, len(watchers))
 	watcherLock.Unlock()
-	
+
 	return
 }
 
@@ -44,7 +45,7 @@ func watcherDelete(watcherID string) {
 
 	watcherLock.Lock()
 	numWatchers := len(watchers)
-	for i, watcher := range(watchers) {
+	for i, watcher := range watchers {
 		if watcher.watcherID == watcherID {
 			if i == numWatchers-1 {
 				watchers = watchers[0:i]
@@ -67,7 +68,7 @@ func watcherGet(watcherID string, timeout time.Duration) (data []byte, err error
 
 	// Find the watcher
 	watcherLock.Lock()
-	for _, watcher = range(watchers) {
+	for _, watcher = range watchers {
 		if watcher.watcherID == watcherID {
 			break
 		}
@@ -85,7 +86,7 @@ func watcherGet(watcherID string, timeout time.Duration) (data []byte, err error
 
 	// Get the buffer
 	watcherLock.Lock()
-	for i := range(watchers) {
+	for i := range watchers {
 		if watchers[i].watcherID == watcherID {
 			data = watchers[i].buf
 			watchers[i].buf = []byte{}
@@ -103,7 +104,7 @@ func watcherPut(target string, data []byte) {
 
 	// Scan all watchers
 	watcherLock.Lock()
-	for i := range(watchers) {
+	for i := range watchers {
 		if watchers[i].target == target {
 			watchers[i].buf = append(watchers[i].buf, data...)
 			watchers[i].event.Signal()
@@ -114,4 +115,3 @@ func watcherPut(target string, data []byte) {
 	return
 
 }
-

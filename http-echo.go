@@ -21,6 +21,11 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 	_ = reqBody
 
+	// If we're echoing URL instead, wrap it
+	if httpReq.URL != "" {
+		reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.URL, string(reqBody)))
+	}
+
 	// Echo
 	fmt.Printf("ECHO %d bytes of %s\n", len(reqBody), httpReq.Header.Get("Content-Type"))
 

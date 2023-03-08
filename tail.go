@@ -5,15 +5,15 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"time"
-	"sort"
 	"bytes"
-	"strings"
-	"io/ioutil"
-	"path/filepath"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 )
 
 // Enumerate a list of the targets that have been used
@@ -40,7 +40,6 @@ func tailTargets() (targets []string) {
 	return
 }
 
-
 // Do a tail of the posted results, optionally cleaning results prior to that tail
 func tail(target string, count int, clean bool, pargs *map[string]string) (data []byte) {
 
@@ -51,11 +50,10 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 	}
 	bodyText := args["text"] != ""
 	addNewline := args["nl"] != ""
-		
-	
+
 	// Don't allow purge of certain hard-wired targets
 	if target == "health" {
-		clean = false;
+		clean = false
 	}
 
 	// Bounds check so that we never to doo much work
@@ -74,7 +72,7 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 	}
 
 	// Show that we're reading this
-	if (!clean) {
+	if !clean {
 		fmt.Printf("tail %s %d\n", target, count)
 	}
 
@@ -109,7 +107,7 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 	numFilenames := len(filenames)
 	appended := 0
 	done := false
-	for i:=numFilenames-1; i>=0; i=i-1 {
+	for i := numFilenames - 1; i >= 0; i = i - 1 {
 		filename := filepath.Join(targetDir, filenames[i])
 
 		// If we're cleaning and  we're done, delete the file
@@ -134,8 +132,8 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 		}
 
 		// Append to the data, noting if we're done
-		for j:=arrayLen-1; j>=0 && !done; j=j-1 {
-			if (len(arrayJSON[j]) > 0) {
+		for j := arrayLen - 1; j >= 0 && !done; j = j - 1 {
+			if len(arrayJSON[j]) > 0 {
 				thisdata := arrayJSON[j]
 				// Do special processing of data if requested
 				if bodyText {
@@ -146,13 +144,13 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 					data = thisdata
 				} else {
 					thisdata = append(thisdata, []byte("\n")...)
-					if (addNewline) {
+					if addNewline {
 						thisdata = append(thisdata, []byte("\n")...)
 					}
 					data = append(thisdata, data...)
 				}
 				// Next
-				appended = appended+1
+				appended = appended + 1
 				if appended >= count {
 					done = true
 				}
@@ -212,5 +210,5 @@ func extractBodyText(in []byte) (out []byte) {
 	// Create output line
 	out = []byte(routedDate + " " + routedTime + " " + bodyText + " (" + projectName + " / " + sn + ")")
 	return
-	
+
 }

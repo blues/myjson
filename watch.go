@@ -6,8 +6,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"time"
-    "net/http"
 )
 
 // Watch a target, "live"
@@ -27,7 +27,7 @@ func watch(httpRsp http.ResponseWriter, httpReq *http.Request, target string) {
 
 	// Data watching loop
 	for {
-		
+
 		// This is an obscure but critical function that flushes partial results
 		// back to the client, so that it may display these partial results
 		// immediately rather than wait until the end of the transaction.
@@ -59,10 +59,10 @@ func watch(httpRsp http.ResponseWriter, httpReq *http.Request, target string) {
 			break
 		}
 
-	}	
+	}
 
 	// Done
 	watcherDelete(watcherID)
-    return
+	return
 
 }

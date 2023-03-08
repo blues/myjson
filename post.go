@@ -5,12 +5,12 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"time"
-    "net/http"
-	"path/filepath"
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"time"
 )
 
 // Post to a target
@@ -46,21 +46,21 @@ func post(httpRsp http.ResponseWriter, target string, payload []byte) {
 		return
 	}
 	targetFile := filepath.Join(targetDir, time.Now().UTC().Format("2006-01-02")+".json")
-    f, err := os.OpenFile(targetFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-    if err != nil {
-		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
-		return
-    }
-    _, err = f.Write(payloadJSON)
+	f, err := os.OpenFile(targetFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
-    }
-    err = f.Close()
+	}
+	_, err = f.Write(payloadJSON)
 	if err != nil {
 		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
 		return
-    }
+	}
+	err = f.Close()
+	if err != nil {
+		http.Error(httpRsp, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	// Send the intended json to the live monitor, if anyone is watching
 	watcherPut(target, payloadJSONIndented)

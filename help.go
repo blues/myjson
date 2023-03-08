@@ -5,7 +5,7 @@
 package main
 
 import (
-    "net/http"
+	"net/http"
 )
 
 const helpText = "http://myjson.live/<any-string> to watch live JSON objects POSTed to that same URL"
@@ -14,7 +14,7 @@ const helpText = "http://myjson.live/<any-string> to watch live JSON objects POS
 func help(httpRsp http.ResponseWriter) {
 
 	httpRsp.Write([]byte(helpText))
-	
-    return
+
+	return
 
 }
