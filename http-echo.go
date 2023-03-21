@@ -66,7 +66,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				lastTime = now
 				interval := 250
 				extra2 := ""
-				if diff1 >= 1 || diff2 >= 1 {
+				if lastCount != 0 && diff1 >= 1 || diff2 >= 1 {
 					extra2 = " <<<<<<<<<<<<<<<<<<"
 				}
 				extra = fmt.Sprintf(" (%d client->server %0.3f, since last %0.3f)%s", interval-lastCount, diff1, diff2, extra2)
