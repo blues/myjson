@@ -46,6 +46,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				}
 				diff1 := now - t
 				diff2 := now - lastTime
+				lastTime = now
 				extra = fmt.Sprintf(" (client->server %0.3f, since last %0.3f)", diff1, diff2)
 			}
 		}
