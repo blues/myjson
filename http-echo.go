@@ -27,7 +27,12 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	// Echo
-	fmt.Printf("ECHO %d bytes of %s\n", len(reqBody), httpReq.Header.Get("Content-Type"))
+	ct := httpReq.Header.Get("Content-Type")
+	if len(reqBody) < 100 && ct == "application/json" {
+		fmt.Printf("ECHO %s\n", string(reqBody))
+	} else {
+		fmt.Printf("ECHO %d bytes of %s\n", len(reqBody), ct)
+	}
 
 	// Mirror the content type and the content
 	httpRsp.Header().Set("Content-Type", httpReq.Header.Get("Content-Type"))
