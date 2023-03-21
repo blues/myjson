@@ -37,12 +37,10 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		if err == nil {
 			v, present := body["time"]
 			if present {
-				t, err := v.(json.Number).Float64()
-				if err == nil {
-					now := float64(time.Now().UTC().UnixNano()/1000000) / 1000
-					diff := now - t
-					extra = fmt.Sprintf(" (%0.3f)", diff)
-				}
+				t := v.(float64)
+				now := float64(time.Now().UTC().UnixNano()/1000000) / 1000
+				diff := now - t
+				extra = fmt.Sprintf(" (%0.3f)", diff)
 			}
 		}
 		fmt.Printf("ECHO %s%s\n", string(reqBody), extra)
