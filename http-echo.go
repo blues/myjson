@@ -61,9 +61,9 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 					maxdiff2 = diff2
 				}
 				lastTime = now
-				extra = fmt.Sprintf(" (client->server %0.3f, since last %0.3f)", diff1, diff2)
 				lastCount++
-				interval := 1000
+				extra = fmt.Sprintf(" (%d client->server %0.3f, since last %0.3f)", lastCount, diff1, diff2)
+				interval := 500
 				if lastCount >= interval {
 					fmt.Printf("\n*** %d MAX client->server %0.3f, MAX since last %0.3f\n\n", interval, maxdiff1, maxdiff2)
 					lastCount = 0
