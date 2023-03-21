@@ -6,9 +6,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 )
 
 // Echo handler
@@ -29,7 +31,21 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	// Echo
 	ct := httpReq.Header.Get("Content-Type")
 	if len(reqBody) < 100 && ct == "application/json" {
-		fmt.Printf("ECHO %s\n", string(reqBody))
+		extra := ""
+		var body map[string]interface{}
+		err = json.Unmarshal(reqBody, &body)
+		if err == nil {
+			v, present := body["time"]
+			if present {
+				t, err := v.(json.Number).Float64()
+				if err == nil {
+					now := float64(time.Now().UTC().UnixNano()/1000000) / 1000
+					diff := now - t
+					extra = fmt.Sprintf(" (%0.3f)", diff)
+				}
+			}
+		}
+		fmt.Printf("ECHO %s%s\n", string(reqBody), extra)
 	} else {
 		fmt.Printf("ECHO %d bytes of %s\n", len(reqBody), ct)
 	}
