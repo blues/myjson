@@ -49,7 +49,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 				}
 				diff1 := now - t
 				diff2 := now - lastTime
-				if diff2 > 15 || reset {
+				if diff2 > 10 || reset {
 					reset = false
 					lastTime = now
 					diff2 = 0
@@ -57,10 +57,10 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 					maxdiff1 = 0
 					maxdiff2 = 0
 				}
-				if diff1 > maxdiff1 {
+				if diff1 > maxdiff1 && lastCount != 0 {
 					maxdiff1 = diff1
 				}
-				if diff2 > maxdiff2 {
+				if diff2 > maxdiff2 && lastCount != 0 {
 					maxdiff2 = diff2
 				}
 				lastTime = now
