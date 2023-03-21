@@ -35,7 +35,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Echo
 	ct := httpReq.Header.Get("Content-Type")
-	if len(reqBody) < 100 && ct == "application/json" {
+	if len(reqBody) < 500 && ct == "application/json" {
 		extra := ""
 		var body map[string]interface{}
 		err = json.Unmarshal(reqBody, &body)
