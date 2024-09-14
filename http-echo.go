@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -31,6 +32,18 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	// If we're echoing URL instead, wrap it
 	if httpReq.RequestURI != "/echo" {
 		reqBody = []byte(fmt.Sprintf("{\"url\":\"%s\",\"event\":%s}", httpReq.RequestURI, string(reqBody)))
+	}
+
+	// Extract the "seconds" query parameter
+	secondsStr := httpReq.URL.Query().Get("seconds")
+	seconds := 0
+	if secondsStr != "" {
+		seconds, _ = strconv.Atoi(secondsStr)
+	}
+
+	// Enforce a delay if requested
+	if seconds != 0 {
+		time.Sleep(time.Duration(seconds) * time.Second)
 	}
 
 	// Echo
