@@ -22,6 +22,8 @@ func inboundWebAPIHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = reqBody
 
+	fmt.Printf("sending to %s: %s\n", r.Header.Get("X-Url"), reqBody)
+
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", r.Header.Get("X-Url"), bytes.NewBuffer(reqBody))
 	req.Header.Add("Content-Type", r.Header.Get("Content-Type"))
