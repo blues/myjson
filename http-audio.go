@@ -22,8 +22,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	if responseDeviceUID == "" {
 		errmsg := fmt.Sprintf("%s not specified", header)
 		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.Write([]byte(errmsg))
 		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
 	header = "X-ResponseProduct"
@@ -31,8 +31,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	if responseProductUID == "" {
 		errmsg := fmt.Sprintf("%s not specified", header)
 		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.Write([]byte(errmsg))
 		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
 	header = "X-ResponseNotefile"
@@ -40,8 +40,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	if responseNotefileID == "" {
 		errmsg := fmt.Sprintf("%s not specified", header)
 		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.Write([]byte(errmsg))
 		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
 	header = "X-ResponseToken"
@@ -49,8 +49,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	if responseApiToken == "" {
 		errmsg := fmt.Sprintf("%s not specified", header)
 		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.Write([]byte(errmsg))
 		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
 
