@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"time"
 )
 
 // Audio handler
@@ -82,11 +84,19 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		// After every 8 values, add a new line.
 		if (i+1)%8 == 0 {
 			fmt.Println()
+			if i > 64 {
+				break
+			}
 		}
 	}
-	// If the last row doesn't complete 8 columns, print a final newline.
-	if len(pcm)%8 != 0 {
-		fmt.Println()
+
+	// Write the audio to a file
+	filename := fmt.Sprintf("%saudio/%d.raw", configDataDirectory, time.Now().UTC().Unix())
+	err := os.WriteFile(filename, payload, 0644)
+	if err != nil {
+		fmt.Println("Error writing file:", err)
+	} else {
+		fmt.Println("File written:", filename)
 	}
 
 	// Done
