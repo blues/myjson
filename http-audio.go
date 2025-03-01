@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -54,8 +55,39 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		return
 	}
 
+	// Remove the 1 byte of padding added by the notecard to "complete" the last page
+	if len(payload) != 0 {
+		payload = payload[:len(payload)-1]
+	}
+
+	// Exit if no audio, which is what's sent to synchronize when we are beginning a new transaction
+	if len(payload) == 0 {
+		httpRsp.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Convert payload to []int16
+	pcm := make([]int16, len(payload)/2)
+	for i := 0; i < len(pcm); i++ {
+		pcm[i] = int16(binary.LittleEndian.Uint16(payload[i*2 : i*2+2]))
+	}
+
 	// Convert the audio to text
-	fmt.Printf("audio: %d bytes to be sent to %s %s %s\n", len(payload), responseDeviceUID, responseProductUID, responseNotefileID)
+	fmt.Printf("audio: %d bytes to be sent to %s %s %s:\n", len(payload), responseDeviceUID, responseProductUID, responseNotefileID)
+
+	// Print the pcm slice in an 8-column display.
+	// Each value is printed as a right-aligned, fixed-width (10 characters) decimal.
+	for i, sample := range pcm {
+		fmt.Printf("%10d", sample)
+		// After every 8 values, add a new line.
+		if (i+1)%8 == 0 {
+			fmt.Println()
+		}
+	}
+	// If the last row doesn't complete 8 columns, print a final newline.
+	if len(pcm)%8 != 0 {
+		fmt.Println()
+	}
 
 	// Done
 	httpRsp.WriteHeader(http.StatusOK)
