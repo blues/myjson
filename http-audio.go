@@ -7,14 +7,49 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
 // Audio handler
 func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
+
+	// Handle file download
+	if httpReq.Method == http.MethodGet {
+		const prefix = "/audio/"
+		if !strings.HasPrefix(httpReq.URL.Path, prefix) {
+			http.Error(httpRsp, "Invalid URL", http.StatusBadRequest)
+			return
+		}
+		filename := httpReq.URL.Path[len(prefix):]
+		fullPath := filepath.Join(configDataDirectory+"audio/", filename)
+		file, err := os.Open(fullPath)
+		if err != nil {
+			http.Error(httpRsp, "File not found", http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+		stat, err := file.Stat()
+		if err == nil {
+			httpRsp.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
+		}
+		httpRsp.Header().Set("Content-Type", "application/octet-stream")
+		httpRsp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+
+		_, err = io.Copy(httpRsp, file)
+		if err != nil {
+			http.Error(httpRsp, "Error serving file", http.StatusInternalServerError)
+			return
+		}
+
+		httpRsp.WriteHeader(http.StatusOK)
+		return
+	}
 
 	// Get the payload if supplied
 	payload, _ := ioutil.ReadAll(httpReq.Body)
