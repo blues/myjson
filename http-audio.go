@@ -50,7 +50,6 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 
-		fmt.Printf("https://myjson.live/audio/%s\n", filename)
 		httpRsp.WriteHeader(http.StatusOK)
 		return
 	}
@@ -130,12 +129,12 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Write the audio to a file
-	filename := fmt.Sprintf("%saudio/%d.raw", configDataDirectory, time.Now().UTC().Unix())
-	err := os.WriteFile(filename, payload, 0644)
+	filename := fmt.Sprintf("audio/%d.raw", time.Now().UTC().Unix())
+	err := os.WriteFile(configDataDirectory+filename, payload, 0644)
 	if err != nil {
 		fmt.Println("Error writing file:", err)
 	} else {
-		fmt.Println("File written:", filename)
+		fmt.Printf("https://myjson.live/%s\n", filename)
 	}
 
 	// Done
