@@ -28,16 +28,13 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		}
 		filename := httpReq.URL.Path[len(prefix):]
 		fullPath := filepath.Join(configDataDirectory+"audio/", filename)
-		fmt.Printf("OZZIE1: %s\n", fullPath)
 		file, err := os.Open(fullPath)
 		if err != nil {
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
 		defer file.Close()
-		fmt.Printf("OZZIE2: %s\n", fullPath)
 		stat, err := file.Stat()
-		fmt.Printf("OZZIE3: %s\n", fullPath)
 		if err == nil {
 			httpRsp.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
 		} else {
@@ -47,15 +44,13 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		httpRsp.Header().Set("Content-Type", "application/octet-stream")
 		httpRsp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 
-		fmt.Printf("OZZIE4: %s\n", fullPath)
 		_, err = io.Copy(httpRsp, file)
-		fmt.Printf("OZZIE5: %s\n", err)
 		if err != nil {
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
 
-		fmt.Printf("OZZIE6: %s\n", "hi")
+		fmt.Printf("https://myjson.live/audio/%s\n", filename)
 		httpRsp.WriteHeader(http.StatusOK)
 		return
 	}
