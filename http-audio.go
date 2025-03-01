@@ -30,20 +30,23 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		fullPath := filepath.Join(configDataDirectory+"audio/", filename)
 		file, err := os.Open(fullPath)
 		if err != nil {
-			http.Error(httpRsp, "File not found", http.StatusNotFound)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
 		defer file.Close()
 		stat, err := file.Stat()
 		if err == nil {
 			httpRsp.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
+		} else {
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+			return
 		}
 		httpRsp.Header().Set("Content-Type", "application/octet-stream")
 		httpRsp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 
 		_, err = io.Copy(httpRsp, file)
 		if err != nil {
-			http.Error(httpRsp, "Error serving file", http.StatusInternalServerError)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
 
