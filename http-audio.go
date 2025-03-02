@@ -43,6 +43,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		}
 		httpRsp.Header().Set("Content-Type", "application/octet-stream")
 		httpRsp.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+		httpRsp.WriteHeader(http.StatusOK)
 
 		_, err = io.Copy(httpRsp, file)
 		if err != nil {
@@ -50,7 +51,6 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 
-		httpRsp.WriteHeader(http.StatusOK)
 		return
 	}
 
