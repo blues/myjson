@@ -6,7 +6,10 @@ package main
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"github.com/go-audio/audio"
+	"github.com/go-audio/wav"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -55,7 +58,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Get the payload if supplied
-	payload, _ := ioutil.ReadAll(httpReq.Body)
+	pcmData, _ := ioutil.ReadAll(httpReq.Body)
 
 	// Extract key parameters
 	header := "X-ResponseDevice"
@@ -96,27 +99,35 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Remove the 1 byte of padding added by the notecard to "complete" the last page
-	if len(payload) != 0 {
-		payload = payload[:len(payload)-1]
+	if len(pcmData) != 0 {
+		pcmData = pcmData[:len(pcmData)-1]
 	}
 
 	// Exit if no audio, which is what's sent to synchronize when we are beginning a new transaction
-	if len(payload) == 0 {
+	if len(pcmData) == 0 {
 		httpRsp.WriteHeader(http.StatusOK)
 		return
 	}
 
-	// Convert payload to []int16
-	pcm := make([]int16, len(payload)/2)
-	for i := 0; i < len(pcm); i++ {
-		pcm[i] = int16(binary.LittleEndian.Uint16(payload[i*2 : i*2+2]))
+	// Convert the pcm data to wav data
+	wavData, err := PCMToWAV(pcmData, 16, 8000)
+	if err != nil {
+		errmsg := fmt.Sprintf("can't convert to wav: %s", err)
+		fmt.Printf("audio: %s\n", errmsg)
+		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
+		return
 	}
 
 	// Convert the audio to text
-	fmt.Printf("audio: %d bytes to be sent to %s %s %s:\n", len(payload), responseDeviceUID, responseProductUID, responseNotefileID)
+	fmt.Printf("audio: %d bytes to be sent to %s %s %s:\n", len(pcmData), responseDeviceUID, responseProductUID, responseNotefileID)
 
 	// Print the pcm slice in an 8-column display.
 	// Each value is printed as a right-aligned, fixed-width (10 characters) decimal.
+	pcm := make([]int16, len(pcmData)/2)
+	for i := 0; i < len(pcm); i++ {
+		pcm[i] = int16(binary.LittleEndian.Uint16(pcmData[i*2 : i*2+2]))
+	}
 	for i, sample := range pcm {
 		fmt.Printf("%10d", sample)
 		// After every 8 values, add a new line.
@@ -128,9 +139,16 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		}
 	}
 
-	// Write the audio to a file
+	// Write the audio to files
 	filename := fmt.Sprintf("audio/%d.raw", time.Now().UTC().Unix())
-	err := os.WriteFile(configDataDirectory+filename, payload, 0644)
+	err = os.WriteFile(configDataDirectory+filename, pcmData, 0644)
+	if err != nil {
+		fmt.Println("Error writing file:", err)
+	} else {
+		fmt.Printf("https://myjson.live/%s\n", filename)
+	}
+	filename = fmt.Sprintf("audio/%d.wav", time.Now().UTC().Unix())
+	err = os.WriteFile(configDataDirectory+filename, wavData, 0644)
 	if err != nil {
 		fmt.Println("Error writing file:", err)
 	} else {
@@ -140,4 +158,103 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	// Done
 	httpRsp.WriteHeader(http.StatusOK)
 
+}
+
+// MemWriteSeeker is an in-memory implementation of io.WriteSeeker.
+type MemWriteSeeker struct {
+	buf []byte
+	pos int64
+}
+
+// NewMemWriteSeeker returns a new MemWriteSeeker.
+func NewMemWriteSeeker() *MemWriteSeeker {
+	return &MemWriteSeeker{
+		buf: make([]byte, 0),
+		pos: 0,
+	}
+}
+
+// Write writes p into the buffer, expanding it if necessary.
+func (m *MemWriteSeeker) Write(p []byte) (int, error) {
+	endPos := int(m.pos) + len(p)
+	if endPos > len(m.buf) {
+		// Expand the buffer. If writing past the current end, fill the gap.
+		if m.pos > int64(len(m.buf)) {
+			return 0, fmt.Errorf("invalid write position")
+		}
+		newBuf := make([]byte, endPos)
+		copy(newBuf, m.buf)
+		m.buf = newBuf
+	}
+	copy(m.buf[m.pos:], p)
+	m.pos += int64(len(p))
+	return len(p), nil
+}
+
+// Seek sets the offset for the next Write.
+func (m *MemWriteSeeker) Seek(offset int64, whence int) (int64, error) {
+	var newPos int64
+	switch whence {
+	case io.SeekStart:
+		newPos = offset
+	case io.SeekCurrent:
+		newPos = m.pos + offset
+	case io.SeekEnd:
+		newPos = int64(len(m.buf)) + offset
+	default:
+		return 0, errors.New("invalid whence")
+	}
+	if newPos < 0 {
+		return 0, errors.New("negative position")
+	}
+	m.pos = newPos
+	return newPos, nil
+}
+
+// Bytes returns the complete written buffer.
+func (m *MemWriteSeeker) Bytes() []byte {
+	return m.buf
+}
+
+// PCMToWAV converts a PCM payload (little-endian, mono, 16-bit) to a WAV file in memory.
+// It takes the PCM data as a byte slice, the bit depth (e.g. 16), and the sample rate (e.g. 8000),
+// and returns the WAV data as a byte slice.
+func PCMToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
+	// For 16-bit PCM, each sample is 2 bytes.
+	if len(pcmData)%(bitDepth/8) != 0 {
+		return nil, fmt.Errorf("invalid PCM data length: must be a multiple of %d", bitDepth/8)
+	}
+
+	numSamples := len(pcmData) / (bitDepth / 8)
+	samples := make([]int, numSamples)
+
+	// Convert each sample from PCM (assuming 16-bit little-endian).
+	for i := 0; i < numSamples; i++ {
+		offset := i * 2
+		sample := int16(binary.LittleEndian.Uint16(pcmData[offset : offset+2]))
+		samples[i] = int(sample)
+	}
+
+	// Create an audio buffer.
+	buffer := &audio.IntBuffer{
+		Format: &audio.Format{
+			NumChannels: 1,
+			SampleRate:  sampleRate,
+		},
+		Data:           samples,
+		SourceBitDepth: bitDepth,
+	}
+
+	// Use MemWriteSeeker instead of bytes.Buffer to satisfy io.WriteSeeker.
+	memWS := NewMemWriteSeeker()
+	encoder := wav.NewEncoder(memWS, sampleRate, bitDepth, 1, 1)
+
+	if err := encoder.Write(buffer); err != nil {
+		return nil, err
+	}
+	if err := encoder.Close(); err != nil {
+		return nil, err
+	}
+
+	return memWS.Bytes(), nil
 }
