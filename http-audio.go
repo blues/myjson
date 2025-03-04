@@ -12,9 +12,11 @@ import (
 	"github.com/go-audio/wav"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -109,8 +111,29 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		return
 	}
 
+	// Get the content type, which defines the audio format
+	contentType := httpReq.Header.Get("Content-Type")
+	mediatype, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		fmt.Printf("audio: can't parse media type: %s\n", err)
+		httpRsp.WriteHeader(http.StatusOK)
+		return
+	}
+	if mediatype != "audio/l16" {
+		fmt.Printf("audio: unsupported media type: %s\n", mediatype)
+		httpRsp.WriteHeader(http.StatusOK)
+		return
+	}
+	rateStr := params["rate"]
+	rate, err := strconv.Atoi(rateStr)
+	if err != nil {
+		fmt.Printf("audio: can't parse rate: %s\n", err)
+		httpRsp.WriteHeader(http.StatusOK)
+		return
+	}
+
 	// Convert the pcm data to wav data
-	wavData, err := PCMToWAV(pcmData, 16, 8000)
+	wavData, err := PCMToWAV(pcmData, 16, rate)
 	if err != nil {
 		errmsg := fmt.Sprintf("can't convert to wav: %s", err)
 		fmt.Printf("audio: %s\n", errmsg)
