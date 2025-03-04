@@ -8,7 +8,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,7 +23,7 @@ var reset = true
 func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the body if supplied
-	reqBody, err := ioutil.ReadAll(httpReq.Body)
+	reqBody, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		reqBody = []byte(fmt.Sprintf("%s", err))
 	}

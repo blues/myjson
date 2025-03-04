@@ -8,7 +8,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -16,7 +16,7 @@ import (
 func inboundWebAPIHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get the body if supplied
-	reqBody, err := ioutil.ReadAll(r.Body)
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		reqBody = []byte(fmt.Sprintf("%s", err))
 	}

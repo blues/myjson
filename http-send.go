@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,7 +45,7 @@ var suppressMessages []suppressMessage
 func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 
 	// Get the body if supplied
-	alertJSON, err := ioutil.ReadAll(httpReq.Body)
+	alertJSON, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		alertJSON = []byte("{}")
 	}
@@ -107,7 +107,7 @@ func inboundWebSendHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		resp, _ := client.Do(req)
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+			bodyBytes, _ := io.ReadAll(resp.Body)
 			fmt.Printf("send: %s (%s): %s\n", toSMS, resp.Status, bodyBytes)
 		} else {
 			fmt.Printf("send: %s: %s\n", toSMS, resp.Status)

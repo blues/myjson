@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,7 +19,7 @@ import (
 func tailTargets() (targets []string) {
 
 	// Get a list of all folders in the data directory
-	files, err := ioutil.ReadDir(configDataDirectory)
+	files, err := os.ReadDir(configDataDirectory)
 	if err != nil {
 		return
 	}
@@ -66,7 +65,7 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 
 	// Get the list of files for the target
 	targetDir := filepath.Join(configDataDirectory, target)
-	files, err := ioutil.ReadDir(targetDir)
+	files, err := os.ReadDir(targetDir)
 	if err != nil {
 		return
 	}
@@ -118,7 +117,7 @@ func tail(target string, count int, clean bool, pargs *map[string]string) (data 
 		}
 
 		// Open the file
-		contents, err := ioutil.ReadFile(filename)
+		contents, err := os.ReadFile(filename)
 		if err != nil {
 			fmt.Printf("can't read %s: %s\n", filenames[i], err)
 			continue

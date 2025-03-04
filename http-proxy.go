@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -32,7 +32,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	throttleTime = time.Now().UnixNano()
 
 	// Get the body if supplied
-	reqBody, err := ioutil.ReadAll(httpReq.Body)
+	reqBody, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		reqBody = []byte("")
 	}
@@ -70,7 +70,7 @@ func inboundWebProxyHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 
-		rspbuf, err = ioutil.ReadAll(resp.Body)
+		rspbuf, err = io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Printf("proxy RD err: %s\n", err)
 			httpRsp.Write([]byte(fmt.Sprintf("{\"err\":\"%s\"}", err)))

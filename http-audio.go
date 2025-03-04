@@ -8,10 +8,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/blues/codec2/go"
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -60,7 +60,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Get the payload if supplied
-	pcmData, _ := ioutil.ReadAll(httpReq.Body)
+	pcmData, _ := io.ReadAll(httpReq.Body)
 
 	// Extract key parameters
 	header := "X-ResponseDevice"
@@ -112,27 +112,63 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Get the content type, which defines the audio format
+	var rate int
 	contentType := httpReq.Header.Get("Content-Type")
 	mediatype, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		fmt.Printf("audio: can't parse media type: %s\n", err)
-		httpRsp.WriteHeader(http.StatusOK)
+		errmsg := fmt.Sprintf("can't parse media type: %s", mediatype)
+		fmt.Printf("audio: %s\n", errmsg)
+		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
-	if mediatype != "audio/l16" {
-		fmt.Printf("audio: unsupported media type: %s\n", mediatype)
-		httpRsp.WriteHeader(http.StatusOK)
-		return
-	}
-	rateStr := params["rate"]
-	rate, err := strconv.Atoi(rateStr)
-	if err != nil {
-		fmt.Printf("audio: can't parse rate: %s\n", err)
-		httpRsp.WriteHeader(http.StatusOK)
+	if mediatype == "audio/l16" {
+		rateStr := params["rate"]
+		rate, err = strconv.Atoi(rateStr)
+		if err != nil {
+			errmsg := fmt.Sprintf("can't parse rate: %s", err)
+			fmt.Printf("audio: %s\n", errmsg)
+			httpRsp.WriteHeader(http.StatusOK)
+			httpRsp.Write([]byte(errmsg))
+			return
+		}
+	} else if mediatype == "audio/codec2-2400" {
+		codec, err := codec2.NewCodec2()
+		if err != nil {
+			errmsg := fmt.Sprintf("can't instantiate codec2: %s", err)
+			fmt.Printf("audio: %s\n", errmsg)
+			httpRsp.WriteHeader(http.StatusOK)
+			httpRsp.Write([]byte(errmsg))
+			return
+		}
+		var decoded []byte
+		for i := 0; i < len(pcmData); i += codec2.BytesPerFrame {
+			end := i + codec2.BytesPerFrame
+			if end > len(pcmData) {
+				break // Don't process partial frames
+			}
+			frame := pcmData[i:end]
+			pcm, err := codec.Decode(frame)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error decoding frame %d: %v\n", i/codec2.BytesPerFrame+1, err)
+				os.Exit(1)
+			}
+			decodedFrame := make([]byte, codec2.SamplesPerFrame*2)
+			for j := 0; j < codec2.SamplesPerFrame; j++ {
+				binary.LittleEndian.PutUint16(decodedFrame[j*2:], uint16(pcm[j]))
+			}
+			decoded = append(decoded, decodedFrame...)
+		}
+		pcmData = decoded
+	} else {
+		errmsg := fmt.Sprintf("unsupported media type: %s", mediatype)
+		fmt.Printf("audio: %s\n", errmsg)
+		httpRsp.WriteHeader(http.StatusBadRequest)
+		httpRsp.Write([]byte(errmsg))
 		return
 	}
 
-	// Convert the pcm data to wav data
+	// Convert PCM data to WAV
 	wavData, err := PCMToWAV(pcmData, 16, rate)
 	if err != nil {
 		errmsg := fmt.Sprintf("can't convert to wav: %s", err)

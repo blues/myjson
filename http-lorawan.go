@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -92,7 +92,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 	// Extract the essential fields from the request
 	deviceUID := ""
 	payload := []byte{}
-	uplinkMessageJSON, err := ioutil.ReadAll(httpReq.Body)
+	uplinkMessageJSON, err := io.ReadAll(httpReq.Body)
 	if debugVerbose {
 		fmt.Printf("lorawan: received:\n%s\n", uplinkMessageJSON)
 	}
@@ -184,7 +184,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
-		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
+		hubrspJSON, _ = io.ReadAll(hrsp.Body)
 		hubrsp := notehub.HubRequest{}
 		err = json.Unmarshal(hubrspJSON, &hubrsp)
 		if err != nil {
@@ -221,7 +221,7 @@ func inboundWebLoRaWANHandler(httpRsp http.ResponseWriter, httpReq *http.Request
 			fmt.Printf("lorawan: %s\n", msg)
 			return
 		}
-		hubrspJSON, _ = ioutil.ReadAll(hrsp.Body)
+		hubrspJSON, _ = io.ReadAll(hrsp.Body)
 		hubrsp = notehub.HubRequest{}
 		err = json.Unmarshal(hubrspJSON, &hubrsp)
 		if err != nil {

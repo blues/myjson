@@ -1,21 +1,25 @@
 module github.com/myjson
 
-go 1.17
+go 1.21
+
+toolchain go1.23.4
 
 require (
+	github.com/blues/codec2/go v0.0.0-20250304230621-51e842c38e32
 	github.com/blues/note-go v1.6.2
+	github.com/go-audio/audio v1.0.0
+	github.com/go-audio/wav v1.1.0
 	github.com/google/uuid v1.3.0
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
 )
 
 require (
 	github.com/creack/goselect v0.1.2 // indirect
-	github.com/go-audio/audio v1.0.0 // indirect
 	github.com/go-audio/riff v1.0.0 // indirect
-	github.com/go-audio/wav v1.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20230110061619-bbe2e5e100de // indirect
+	github.com/mjibson/go-dsp v0.0.0-20180508042940-11479a337f12 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/shirou/gopsutil/v3 v3.23.2 // indirect

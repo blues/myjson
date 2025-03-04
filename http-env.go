@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -43,7 +43,7 @@ func inboundWebEnvHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		return
 
 	case "POST":
-		envJSON, err := ioutil.ReadAll(httpReq.Body)
+		envJSON, err := io.ReadAll(httpReq.Body)
 		if err != nil {
 			fmt.Fprintf(httpRsp, "%s", err)
 			return
@@ -95,7 +95,7 @@ func envGet(httpReq *http.Request, product string, device string) (rsp []byte, s
 	statusCode = httpresp.StatusCode
 
 	// Read the response
-	rsp, err = ioutil.ReadAll(httpresp.Body)
+	rsp, err = io.ReadAll(httpresp.Body)
 
 	// Done
 	return

@@ -6,7 +6,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"os"
@@ -29,7 +29,7 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	}
 
 	// Get the body if supplied
-	reqJSON, err := ioutil.ReadAll(httpReq.Body)
+	reqJSON, err := io.ReadAll(httpReq.Body)
 	if err != nil {
 		reqJSON = []byte{}
 	}
@@ -231,7 +231,7 @@ func getFile(filename string, ctype string) (contents []byte, exists bool) {
 	}
 	var err error
 	fileLock.Lock()
-	contents, err = ioutil.ReadFile(pathname)
+	contents, err = os.ReadFile(pathname)
 	fileLock.Unlock()
 	if err != nil {
 		contents = []byte(fmt.Sprintf("%s", err))
