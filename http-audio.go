@@ -122,7 +122,6 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		httpRsp.Write([]byte(errmsg))
 		return
 	}
-	fmt.Printf("'%s'\n", mediatype)
 	if mediatype == "audio/l16" {
 		rateStr := params["rate"]
 		rate, err = strconv.Atoi(rateStr)
@@ -134,6 +133,15 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 	} else if mediatype == "audio/codec2-2400" {
+		rateStr := params["rate"]
+		rate, err = strconv.Atoi(rateStr)
+		if err != nil {
+			errmsg := fmt.Sprintf("can't parse rate: %s", err)
+			fmt.Printf("audio: %s\n", errmsg)
+			httpRsp.WriteHeader(http.StatusOK)
+			httpRsp.Write([]byte(errmsg))
+			return
+		}
 		codec, err := codec2.NewCodec2()
 		if err != nil {
 			errmsg := fmt.Sprintf("can't instantiate codec2: %s", err)
