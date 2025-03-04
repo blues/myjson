@@ -2,8 +2,6 @@ module github.com/myjson
 
 go 1.21
 
-toolchain go1.23.4
-
 require (
 	github.com/blues/codec2/go v0.0.0-20250304230621-51e842c38e32
 	github.com/blues/note-go v1.6.2
