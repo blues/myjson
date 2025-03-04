@@ -122,6 +122,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		httpRsp.Write([]byte(errmsg))
 		return
 	}
+	fmt.Printf("'%s'\n", mediatype)
 	if mediatype == "audio/l16" {
 		rateStr := params["rate"]
 		rate, err = strconv.Atoi(rateStr)
