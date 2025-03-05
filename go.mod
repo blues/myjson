@@ -5,7 +5,7 @@ go 1.22.6
 toolchain go1.23.4
 
 require (
-	github.com/blues/codec2/go v0.0.0-20250305030841-7492ca7c4623
+	github.com/blues/codec2/go v0.0.0-20250305185414-91eb9bd63be5
 	github.com/blues/note-go v1.8.0
 	github.com/go-audio/audio v1.0.0
 	github.com/go-audio/wav v1.1.0
