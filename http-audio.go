@@ -5,10 +5,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/blues/codec2/go"
+	"github.com/blues/note-go/note"
+	"github.com/blues/note-go/notehub"
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"io"
@@ -59,48 +62,21 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		return
 	}
 
-	// Get the payload if supplied
-	pcmData, _ := io.ReadAll(httpReq.Body)
-
-	// Extract key parameters
-	header := "X-ResponseDevice"
-	responseDeviceUID := httpReq.Header.Get(header)
-	if responseDeviceUID == "" {
-		errmsg := fmt.Sprintf("%s not specified", header)
-		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(errmsg))
-		return
-	}
-	header = "X-ResponseProduct"
-	responseProductUID := httpReq.Header.Get(header)
-	if responseProductUID == "" {
-		errmsg := fmt.Sprintf("%s not specified", header)
-		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(errmsg))
-		return
-	}
-	header = "X-ResponseNotefile"
-	responseNotefileID := httpReq.Header.Get(header)
-	if responseNotefileID == "" {
-		errmsg := fmt.Sprintf("%s not specified", header)
-		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(errmsg))
-		return
-	}
-	header = "X-ResponseToken"
-	responseApiToken := httpReq.Header.Get(header)
-	if responseApiToken == "" {
-		errmsg := fmt.Sprintf("%s not specified", header)
-		fmt.Printf("audio: %s\n", errmsg)
-		httpRsp.WriteHeader(http.StatusBadRequest)
-		httpRsp.Write([]byte(errmsg))
+	// If this is an event, process it differently than if it's raw audio
+	contentType := httpReq.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		err := processEventRequestResponse(httpReq)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+		} else {
+			httpRsp.WriteHeader(http.StatusOK)
+		}
 		return
 	}
 
 	// Remove the 1 byte of padding added by the notecard to "complete" the last page
+	pcmData, _ := io.ReadAll(httpReq.Body)
 	if len(pcmData) != 0 {
 		pcmData = pcmData[:len(pcmData)-1]
 	}
@@ -114,7 +90,6 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	// Get the content type, which defines the audio format
 	var rate int
 	var c2data []byte
-	contentType := httpReq.Header.Get("Content-Type")
 	mediatype, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
 		errmsg := fmt.Sprintf("can't parse media type: %s", mediatype)
@@ -143,32 +118,14 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			httpRsp.Write([]byte(errmsg))
 			return
 		}
-		codec, err := codec2.NewCodec2()
+		c2data = pcmData
+		pcmData, err = C2ToPCM(c2data, rate)
 		if err != nil {
-			errmsg := fmt.Sprintf("can't instantiate codec2: %s", err)
+			errmsg := fmt.Sprintf("can't convert codec2 to pcm: %s", err)
 			fmt.Printf("audio: %s\n", errmsg)
 			httpRsp.WriteHeader(http.StatusOK)
 			httpRsp.Write([]byte(errmsg))
 			return
-		}
-		c2data = pcmData
-		pcmData = []byte{}
-		for i := 0; i < len(c2data); i += codec2.BytesPerFrame {
-			end := i + codec2.BytesPerFrame
-			if end > len(c2data) {
-				break // Don't process partial frames
-			}
-			frame := c2data[i:end]
-			pcm, err := codec.Decode(frame)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error decoding frame %d: %v\n", i/codec2.BytesPerFrame+1, err)
-				os.Exit(1)
-			}
-			decodedFrame := make([]byte, codec2.SamplesPerFrame*2)
-			for j := 0; j < codec2.SamplesPerFrame; j++ {
-				binary.LittleEndian.PutUint16(decodedFrame[j*2:], uint16(pcm[j]))
-			}
-			pcmData = append(pcmData, decodedFrame...)
 		}
 	} else {
 		errmsg := fmt.Sprintf("unsupported media type: %s", mediatype)
@@ -189,7 +146,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Convert the audio to text
-	fmt.Printf("audio: %d bytes to be sent to %s %s %s:\n", len(pcmData), responseDeviceUID, responseProductUID, responseNotefileID)
+	fmt.Printf("audio: %d bytes\n", len(pcmData))
 
 	// Print the pcm slice in an 8-column display.
 	// Each value is printed as a right-aligned, fixed-width (10 characters) decimal.
@@ -295,6 +252,32 @@ func (m *MemWriteSeeker) Bytes() []byte {
 	return m.buf
 }
 
+// C2ToPCM converts a Codec2 payload to PCM (16-bit, little-endian) in memory.
+func C2ToPCM(c2data []byte, rate int) (pcmData []byte, err error) {
+	codec, err := codec2.NewCodec2()
+	if err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(c2data); i += codec2.BytesPerFrame {
+		end := i + codec2.BytesPerFrame
+		if end > len(c2data) {
+			break // Don't process partial frames
+		}
+		frame := c2data[i:end]
+		pcm, err := codec.Decode(frame)
+		if err != nil {
+			return nil, err
+		}
+		decodedFrame := make([]byte, codec2.SamplesPerFrame*2)
+		for j := 0; j < codec2.SamplesPerFrame; j++ {
+			binary.LittleEndian.PutUint16(decodedFrame[j*2:], uint16(pcm[j]))
+		}
+		pcmData = append(pcmData, decodedFrame...)
+	}
+
+	return pcmData, nil
+}
+
 // PCMToWAV converts a PCM payload (little-endian, mono, 16-bit) to a WAV file in memory.
 // It takes the PCM data as a byte slice, the bit depth (e.g. 16), and the sample rate (e.g. 8000),
 // and returns the WAV data as a byte slice.
@@ -336,4 +319,124 @@ func PCMToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
 	}
 
 	return memWS.Bytes(), nil
+}
+
+// Process an event request/response
+func processEventRequestResponse(httpReq *http.Request) (err error) {
+
+	// Extract required parameters from the Route configuration
+	header := "X-OpenAiApiKey"
+	openAiApiKey := httpReq.Header.Get(header)
+	if openAiApiKey == "" {
+		return fmt.Errorf("%s not specified", header)
+	}
+	header = "X-RequestNotefile"
+	requestNotefileID := httpReq.Header.Get(header)
+	if requestNotefileID == "" {
+		return fmt.Errorf("%s not specified", header)
+	}
+	header = "X-ResponseNotefile"
+	responseNotefileID := httpReq.Header.Get(header)
+	if responseNotefileID == "" {
+		return fmt.Errorf("%s not specified", header)
+	}
+	header = "X-ResponseToken"
+	responseApiToken := httpReq.Header.Get(header)
+	if responseApiToken == "" {
+		return fmt.Errorf("%s not specified", header)
+	}
+
+	// Read the JSON event which is an Event structure
+	eventJSON, err := io.ReadAll(httpReq.Body)
+	if err != nil {
+		return err
+	}
+	var event note.Event
+	err = note.JSONUnmarshal(eventJSON, &event)
+	if err != nil {
+		return err
+	}
+
+	// Request and response types
+	type Request struct {
+		Id uint64 `json:"id"`
+	}
+	var request Request
+	type Response struct {
+		Id       uint64 `json:"id"`
+		Request  string `json:"request"`
+		Response string `json:"response"`
+	}
+	var response Response
+
+	// Read the request JSON which is a request structure
+	if event.Body != nil {
+		bodyJSON, err := note.ObjectToJSON(*event.Body)
+		if err != nil {
+			return err
+		}
+		err = note.JSONUnmarshal(bodyJSON, &request)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Read the C2 data from the payload, and convert it to WAV
+	rate := 8000
+	pcmData, err := C2ToPCM(event.Payload, rate)
+	if err != nil {
+		return err
+	}
+	wavData, err := PCMToWAV(pcmData, 16, rate)
+	if err != nil {
+		return err
+	}
+
+	// PUT OPENAPI CALLS HERE - THIS IS MOCKED
+	_ = wavData
+	response.Id = request.Id
+	response.Request = "What's the weather like today?"
+	response.Response = "It's always sunny in Philadelphia."
+
+	// Convert the response to JSON
+	responseJSON, err := note.ObjectToJSON(response)
+	if err != nil {
+		return err
+	}
+	body, err := note.JSONToBody(responseJSON)
+	if err != nil {
+		return err
+	}
+
+	// Send the response to the app
+	hubreq := notehub.HubRequest{}
+	hubreq.Req = "note.add"
+	hubreq.Body = &body
+	hubreq.NotefileID = responseNotefileID
+	hubreq.AppUID = event.AppUID
+	hubreq.DeviceUID = event.DeviceUID
+	hubreqJSON, err := note.JSONMarshal(hubreq)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("audio: request: %s\n", hubreqJSON)
+
+	hreq, _ := http.NewRequest("POST", "https://"+notehub.DefaultAPIService, bytes.NewBuffer(hubreqJSON))
+	hreq.Header.Set("User-Agent", "audio request processor")
+	hreq.Header.Set("Content-Type", "application/json")
+	hreq.Header.Set("X-Session-Token", responseApiToken)
+	httpClient := &http.Client{Timeout: time.Second * 10}
+	hrsp, err := httpClient.Do(hreq)
+	if err != nil {
+		return err
+	}
+	hubrspJSON, err := io.ReadAll(hrsp.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("audio: response: %s\n", hubrspJSON)
+
+	// Done
+	return nil
+
 }
