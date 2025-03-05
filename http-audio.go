@@ -113,6 +113,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 
 	// Get the content type, which defines the audio format
 	var rate int
+	var c2data []byte
 	contentType := httpReq.Header.Get("Content-Type")
 	mediatype, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -150,13 +151,14 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			httpRsp.Write([]byte(errmsg))
 			return
 		}
-		var decoded []byte
-		for i := 0; i < len(pcmData); i += codec2.BytesPerFrame {
+		c2data = pcmData
+		pcmData = []byte{}
+		for i := 0; i < len(c2data); i += codec2.BytesPerFrame {
 			end := i + codec2.BytesPerFrame
-			if end > len(pcmData) {
+			if end > len(c2data) {
 				break // Don't process partial frames
 			}
-			frame := pcmData[i:end]
+			frame := c2data[i:end]
 			pcm, err := codec.Decode(frame)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error decoding frame %d: %v\n", i/codec2.BytesPerFrame+1, err)
@@ -166,9 +168,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			for j := 0; j < codec2.SamplesPerFrame; j++ {
 				binary.LittleEndian.PutUint16(decodedFrame[j*2:], uint16(pcm[j]))
 			}
-			decoded = append(decoded, decodedFrame...)
+			pcmData = append(pcmData, decodedFrame...)
 		}
-		pcmData = decoded
 	} else {
 		errmsg := fmt.Sprintf("unsupported media type: %s", mediatype)
 		fmt.Printf("audio: %s\n", errmsg)
@@ -208,14 +209,24 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Write the audio to files
-	filename := fmt.Sprintf("audio/%d.raw", time.Now().UTC().Unix())
+	filetime := time.Now().UTC().Unix()
+	if len(c2data) != 0 {
+		filename := fmt.Sprintf("audio/%d.c2", filetime)
+		err = os.WriteFile(configDataDirectory+filename, c2data, 0644)
+		if err != nil {
+			fmt.Println("Error writing file:", err)
+		} else {
+			fmt.Printf("https://myjson.live/%s\n", filename)
+		}
+	}
+	filename := fmt.Sprintf("audio/%d.raw", filetime)
 	err = os.WriteFile(configDataDirectory+filename, pcmData, 0644)
 	if err != nil {
 		fmt.Println("Error writing file:", err)
 	} else {
 		fmt.Printf("https://myjson.live/%s\n", filename)
 	}
-	filename = fmt.Sprintf("audio/%d.wav", time.Now().UTC().Unix())
+	filename = fmt.Sprintf("audio/%d.wav", filetime)
 	err = os.WriteFile(configDataDirectory+filename, wavData, 0644)
 	if err != nil {
 		fmt.Println("Error writing file:", err)
