@@ -394,6 +394,16 @@ func processEventRequestResponse(httpReq *http.Request) (err error) {
 		return err
 	}
 
+	// For debugging
+	filetime := time.Now().UTC().Unix()
+	filename := fmt.Sprintf("audio/%d.wav", filetime)
+	err = os.WriteFile(configDataDirectory+filename, wavData, 0644)
+	if err != nil {
+		fmt.Println("Error writing file:", err)
+	} else {
+		fmt.Printf("https://myjson.live/%s\n", filename)
+	}
+
 	// Return the request ID in the response
 	response.Id = request.Id
 
