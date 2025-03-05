@@ -23,8 +23,25 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
+
+// Protocol of the "body" field in Events
+type AudioRequest struct {
+	Id     uint64 `json:"id"`
+	Offset int    `json:"offset"`
+	Last   bool   `json:"last"`
+}
+type AudioResponse struct {
+	Id       uint64 `json:"id"`
+	Request  string `json:"request"`
+	Response string `json:"response"`
+}
+
+// Cache of audio data being uploaded, indexed by deviceUID
+var audioCache map[string][]byte
+var audioCacheLock sync.RWMutex
 
 // Audio handler
 func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
@@ -40,6 +57,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		fullPath := filepath.Join(configDataDirectory+"audio/", filename)
 		file, err := os.Open(fullPath)
 		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
@@ -48,6 +66,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		if err == nil {
 			httpRsp.Header().Set("Content-Length", fmt.Sprintf("%d", stat.Size()))
 		} else {
+			httpRsp.WriteHeader(http.StatusBadRequest)
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
@@ -57,6 +76,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 
 		_, err = io.Copy(httpRsp, file)
 		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 			return
 		}
@@ -67,7 +87,71 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	// If this is an event, process it differently than if it's raw audio
 	contentType := httpReq.Header.Get("Content-Type")
 	if contentType == "application/json" {
-		err := processEventRequestResponse(httpReq)
+
+		// Read the JSON event which is an Event structure
+		eventJSON, err := io.ReadAll(httpReq.Body)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+			return
+		}
+		var event note.Event
+		err = note.JSONUnmarshal(eventJSON, &event)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+			return
+		}
+		c2Data := event.Payload
+
+		// Read the request JSON which is a request structure
+		var request AudioRequest
+		if event.Body == nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte("no body in event"))
+			return
+		}
+		bodyJSON, err := note.ObjectToJSON(*event.Body)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+			return
+		}
+		err = note.JSONUnmarshal(bodyJSON, &request)
+		if err != nil {
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
+			return
+		}
+
+		// Multi-segment upload cache management
+		audioCacheLock.Lock()
+		if request.Offset == 0 {
+			audioCache[event.DeviceUID] = c2Data
+			fmt.Printf("audio: %s: first %d bytes\n", event.DeviceUID, len(c2Data))
+		} else if request.Offset == len(audioCache[event.DeviceUID]) {
+			audioCache[event.DeviceUID] = append(audioCache[event.DeviceUID], c2Data...)
+			fmt.Printf("audio: %s: appended %d bytes\n", event.DeviceUID, len(c2Data))
+		} else {
+			errstr := fmt.Sprintf("offset mismatch: %d != %d", request.Offset, len(audioCache[event.DeviceUID]))
+			fmt.Printf("audio: %s: %s\n", event.DeviceUID, errstr)
+			audioCacheLock.Unlock()
+			httpRsp.WriteHeader(http.StatusBadRequest)
+			httpRsp.Write([]byte(errstr))
+			return
+		}
+		if !request.Last {
+			audioCacheLock.Unlock()
+			httpRsp.WriteHeader(http.StatusOK)
+			return
+		}
+		c2Data = audioCache[event.DeviceUID]
+		delete(audioCache, event.DeviceUID)
+		fmt.Printf("audio: %s: processing %d bytes\n", event.DeviceUID, len(c2Data))
+		audioCacheLock.Unlock()
+
+		// Process the data
+		err = processAudioRequest(httpReq, event, request, c2Data)
 		if err != nil {
 			httpRsp.WriteHeader(http.StatusBadRequest)
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
@@ -324,7 +408,7 @@ func PCMToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
 }
 
 // Process an event request/response
-func processEventRequestResponse(httpReq *http.Request) (err error) {
+func processAudioRequest(httpReq *http.Request, event note.Event, request AudioRequest, c2Data []byte) (err error) {
 
 	// Extract required parameters from the Route configuration
 	header := "X-OpenAiApiKey"
@@ -348,44 +432,9 @@ func processEventRequestResponse(httpReq *http.Request) (err error) {
 		return fmt.Errorf("%s not specified", header)
 	}
 
-	// Read the JSON event which is an Event structure
-	eventJSON, err := io.ReadAll(httpReq.Body)
-	if err != nil {
-		return err
-	}
-	var event note.Event
-	err = note.JSONUnmarshal(eventJSON, &event)
-	if err != nil {
-		return err
-	}
-
-	// Request and response types
-	type Request struct {
-		Id uint64 `json:"id"`
-	}
-	var request Request
-	type Response struct {
-		Id       uint64 `json:"id"`
-		Request  string `json:"request"`
-		Response string `json:"response"`
-	}
-	var response Response
-
-	// Read the request JSON which is a request structure
-	if event.Body != nil {
-		bodyJSON, err := note.ObjectToJSON(*event.Body)
-		if err != nil {
-			return err
-		}
-		err = note.JSONUnmarshal(bodyJSON, &request)
-		if err != nil {
-			return err
-		}
-	}
-
 	// Read the C2 data from the payload, and convert it to WAV
 	rate := 8000
-	pcmData, err := C2ToPCM(event.Payload, rate)
+	pcmData, err := C2ToPCM(c2Data, rate)
 	if err != nil {
 		return err
 	}
@@ -405,6 +454,7 @@ func processEventRequestResponse(httpReq *http.Request) (err error) {
 	}
 
 	// Return the request ID in the response
+	var response AudioResponse
 	response.Id = request.Id
 
 	// Get the text
