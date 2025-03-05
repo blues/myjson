@@ -40,7 +40,7 @@ type AudioResponse struct {
 }
 
 // Cache of audio data being uploaded, indexed by deviceUID
-var audioCache map[string][]byte
+var audioCache map[string][]byte = map[string][]byte{}
 var audioCacheLock sync.RWMutex
 
 // Audio handler
