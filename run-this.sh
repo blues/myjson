@@ -8,7 +8,7 @@
 set -v
 git reset --hard
 git pull
-go get -u
+# go get -u
 go build
 
 sudo ./myjson
