@@ -7,6 +7,7 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/blues/codec2/go"
@@ -16,6 +17,7 @@ import (
 	"github.com/go-audio/wav"
 	"io"
 	"mime"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -392,11 +394,14 @@ func processEventRequestResponse(httpReq *http.Request) (err error) {
 		return err
 	}
 
-	// PUT OPENAPI CALLS HERE - THIS IS MOCKED
-	_ = wavData
+	// Return the request ID in the response
 	response.Id = request.Id
-	response.Request = "What's the weather like today?"
-	response.Response = "It's always sunny in Philadelphia."
+
+	// Get the text
+	response.Request, response.Response, err = getTextRequestResponseFromWav(openAiApiKey, wavData)
+	if err != nil {
+		return err
+	}
 
 	// Convert the response to JSON
 	responseJSON, err := note.ObjectToJSON(response)
@@ -439,4 +444,112 @@ func processEventRequestResponse(httpReq *http.Request) (err error) {
 	// Done
 	return nil
 
+}
+
+// getTextRequestResponse calls the OpenAI Whisper API to transcribe the audio,
+// and the ChatGPT API to generate a response.
+func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request string, response string, err error) {
+	// --- Call OpenAI Whisper API for transcription ---
+	var b bytes.Buffer
+	writer := multipart.NewWriter(&b)
+
+	// Create a form file field "file" with the WAV data
+	part, err := writer.CreateFormFile("file", "audio.wav")
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create form file: %v", err)
+	}
+	if _, err = part.Write(wavData); err != nil {
+		return "", "", fmt.Errorf("failed to write wav data: %v", err)
+	}
+
+	// Add required form field for the Whisper model
+	if err = writer.WriteField("model", "whisper-1"); err != nil {
+		return "", "", fmt.Errorf("failed to write model field: %v", err)
+	}
+	if err = writer.Close(); err != nil {
+		return "", "", fmt.Errorf("failed to close writer: %v", err)
+	}
+
+	// Build the Whisper API request
+	whisperURL := "https://api.openai.com/v1/audio/transcriptions"
+	whisperReq, err := http.NewRequest("POST", whisperURL, &b)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to create whisper request: %v", err)
+	}
+	whisperReq.Header.Set("Content-Type", writer.FormDataContentType())
+	whisperReq.Header.Set("Authorization", "Bearer "+openAiApiKey)
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	whisperResp, err := httpClient.Do(whisperReq)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to perform whisper request: %v", err)
+	}
+	defer whisperResp.Body.Close()
+
+	if whisperResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(whisperResp.Body)
+		return "", "", fmt.Errorf("whisper API error: %s", string(bodyBytes))
+	}
+
+	// Parse the transcription response (expected JSON: { "text": "..." })
+	var whisperResult struct {
+		Text string `json:"text"`
+	}
+	if err := json.NewDecoder(whisperResp.Body).Decode(&whisperResult); err != nil {
+		return "", "", fmt.Errorf("failed to decode whisper response: %v", err)
+	}
+	transcription := whisperResult.Text
+
+	// --- Call ChatGPT API for ASCII text response ---
+	chatPayload := map[string]interface{}{
+		"model": "gpt-3.5-turbo",
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": transcription,
+			},
+		},
+	}
+	payloadBytes, err := json.Marshal(chatPayload)
+	if err != nil {
+		return transcription, "", fmt.Errorf("failed to marshal chat payload: %v", err)
+	}
+
+	chatURL := "https://api.openai.com/v1/chat/completions"
+	chatReq, err := http.NewRequest("POST", chatURL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return transcription, "", fmt.Errorf("failed to create chat request: %v", err)
+	}
+	chatReq.Header.Set("Content-Type", "application/json")
+	chatReq.Header.Set("Authorization", "Bearer "+openAiApiKey)
+
+	chatResp, err := httpClient.Do(chatReq)
+	if err != nil {
+		return transcription, "", fmt.Errorf("failed to perform chat request: %v", err)
+	}
+	defer chatResp.Body.Close()
+
+	if chatResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(chatResp.Body)
+		return transcription, "", fmt.Errorf("chat API error: %s", string(bodyBytes))
+	}
+
+	var chatResult struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.NewDecoder(chatResp.Body).Decode(&chatResult); err != nil {
+		return transcription, "", fmt.Errorf("failed to decode chat response: %v", err)
+	}
+	if len(chatResult.Choices) == 0 {
+		return transcription, "", fmt.Errorf("chat response missing choices")
+	}
+
+	asciiResponse := chatResult.Choices[0].Message.Content
+
+	// Return transcription as the request and ChatGPT's response as the response.
+	return transcription, asciiResponse, nil
 }
