@@ -464,6 +464,14 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		return err
 	}
 
+	// Convert the response to WAV
+	var wavDataResponse []byte
+	wavDataResponse, err = getWavFromResponse(openAiApiKey, response.Response)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("audio: response WAV is %d bytes\n", len(wavDataResponse))
+
 	// Convert the response to JSON
 	responseJSON, err := note.ObjectToJSON(response)
 	if err != nil {
@@ -616,4 +624,46 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 
 	// Return transcription as the request and ChatGPT's response as the response.
 	return transcription, asciiResponse, nil
+}
+
+// getWavFromResponse converts text (from the ChatGPT response) back into WAV audio using OpenAI’s Text-to-Speech API.
+func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err error) {
+	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
+	payload := map[string]interface{}{
+		"text":         text,
+		"model":        "gpt-4o-mini-tts",
+		"voice":        "coral",
+		"instructions": "Speak in a cheerful and positive tone.",
+	}
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal TTS payload: %v", err)
+	}
+
+	ttsURL := "https://api.openai.com/v1/audio/speech"
+	ttsReq, err := http.NewRequest("POST", ttsURL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TTS request: %v", err)
+	}
+	ttsReq.Header.Set("Content-Type", "application/json")
+	ttsReq.Header.Set("Authorization", "Bearer "+openAiApiKey)
+
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+	ttsResp, err := httpClient.Do(ttsReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to perform TTS request: %v", err)
+	}
+	defer ttsResp.Body.Close()
+
+	if ttsResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(ttsResp.Body)
+		return nil, fmt.Errorf("TTS API error: %s", string(bodyBytes))
+	}
+
+	// Read and return the WAV data from the response
+	wavData, err = io.ReadAll(ttsResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read TTS response: %v", err)
+	}
+	return wavData, nil
 }
