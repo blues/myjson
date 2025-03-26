@@ -471,7 +471,19 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 	if err != nil {
 		return err
 	}
-	fmt.Printf("audio: response WAV is %d bytes\n", len(wavDataResponse))
+
+	// Convert to PCM
+	var pcmDataResponse []byte
+	pcmDataResponse, err = WAVToPCM8k(wavDataResponse)
+	if err != nil {
+		return err
+	}
+
+	c2DataResponse, err := PCMToC2(pcmDataResponse)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("audio: response WAV/PCM/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
 
 	// Convert the response to JSON
 	responseJSON, err := note.ObjectToJSON(response)
@@ -668,4 +680,81 @@ func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err e
 		return nil, fmt.Errorf("failed to read TTS response: %v", err)
 	}
 	return wavData, nil
+}
+
+// WAVToPCM8k converts WAV data to a PCM []byte array at 8kHz.
+// It decodes the WAV, and if the sample rate is not 8000, uses linear interpolation to downsample.
+func WAVToPCM8k(wavData []byte) ([]byte, error) {
+	r := bytes.NewReader(wavData)
+	decoder := wav.NewDecoder(r)
+	if !decoder.IsValidFile() {
+		return nil, fmt.Errorf("invalid WAV file")
+	}
+	buf, err := decoder.FullPCMBuffer()
+	if err != nil {
+		return nil, err
+	}
+	inputRate := decoder.SampleRate
+	var resampled []int
+	if inputRate == 8000 {
+		resampled = buf.Data
+	} else {
+		resampled = resampleLinear(buf.Data, int(inputRate), 8000)
+	}
+	// Convert the resampled integer samples into a []byte slice (16-bit little-endian)
+	pcmBytes := make([]byte, len(resampled)*2)
+	for i, sample := range resampled {
+		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
+	}
+	return pcmBytes, nil
+}
+
+// resampleLinear performs a simple linear interpolation to convert sample rate.
+func resampleLinear(samples []int, srcRate int, dstRate int) []int {
+	newLength := int(float64(len(samples)) * float64(dstRate) / float64(srcRate))
+	resampled := make([]int, newLength)
+	for i := 0; i < newLength; i++ {
+		srcIndex := float64(i) * float64(srcRate) / float64(dstRate)
+		indexInt := int(srcIndex)
+		frac := srcIndex - float64(indexInt)
+		if indexInt+1 < len(samples) {
+			resampled[i] = int(float64(samples[indexInt])*(1-frac) + float64(samples[indexInt+1])*frac)
+		} else {
+			resampled[i] = samples[indexInt]
+		}
+	}
+	return resampled
+}
+
+// PCMToC2 converts a raw 16-bit PCM []byte (mono, little-endian) into Codec2 encoded data.
+// If the length of pcmData is not a multiple of codec2.SamplesPerFrame*2, it zero-fills the remaining bytes.
+func PCMToC2(pcmData []byte) ([]byte, error) {
+	codec, err := codec2.NewCodec2()
+	if err != nil {
+		return nil, err
+	}
+
+	frameSize := codec2.SamplesPerFrame * 2 // bytes per frame
+	// Pad pcmData with zeros if necessary
+	remainder := len(pcmData) % frameSize
+	if remainder != 0 {
+		paddingSize := frameSize - remainder
+		pcmData = append(pcmData, make([]byte, paddingSize)...)
+	}
+
+	var c2Data []byte
+	for i := 0; i < len(pcmData); i += frameSize {
+		pcmFrame := make(codec2.PCMBuffer, codec2.SamplesPerFrame)
+		for j := 0; j < codec2.SamplesPerFrame; j++ {
+			offset := i + j*2
+			pcmFrame[j] = int16(binary.LittleEndian.Uint16(pcmData[offset : offset+2]))
+		}
+
+		encodedFrame, err := codec.Encode(pcmFrame)
+		if err != nil {
+			return nil, err
+		}
+		c2Data = append(c2Data, encodedFrame...)
+	}
+	return c2Data, nil
 }
