@@ -154,6 +154,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		// Process the data
 		err = processAudioRequest(httpReq, event, request, c2Data)
 		if err != nil {
+			fmt.Printf("audio error: %s\n", err)
 			httpRsp.WriteHeader(http.StatusBadRequest)
 			httpRsp.Write([]byte(fmt.Sprintf("%s", err)))
 		} else {
