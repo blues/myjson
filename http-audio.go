@@ -631,10 +631,11 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err error) {
 	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
 	payload := map[string]interface{}{
-		"text":         text,
-		"model":        "gpt-4o-mini-tts",
-		"voice":        "coral",
-		"instructions": "Speak in a cheerful and positive tone.",
+		"input":           text,
+		"response_format": "wav",
+		"model":           "gpt-4o-mini-tts",
+		"voice":           "coral",
+		"instructions":    "Speak in a cheerful and positive tone.",
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
