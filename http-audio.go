@@ -10,11 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/blues/codec2/go"
-	"github.com/blues/note-go/note"
-	"github.com/blues/note-go/notehub"
-	"github.com/go-audio/audio"
-	"github.com/go-audio/wav"
 	"io"
 	"mime"
 	"mime/multipart"
@@ -25,6 +20,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	codec2 "github.com/blues/codec2/go"
+	"github.com/blues/note-go/note"
+	"github.com/blues/note-go/notehub"
+	"github.com/go-audio/audio"
+	"github.com/go-audio/wav"
 )
 
 // Protocol of the "body" field in Events
@@ -522,43 +523,46 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 		return "", "", fmt.Errorf("failed to write wav data: %v", err)
 	}
 
-	// Add required form field for the Whisper model
-	if err = writer.WriteField("model", "whisper-1"); err != nil {
+	// Add required form field for the Whisper model.  Someday we can even
+	// add a "prompt=" field to provide context for the transcription.
+	// See this.https://platform.openai.com/docs/guides/speech-to-text
+	//	if err = writer.WriteField("model", "whisper-1"); err != nil {
+	if err = writer.WriteField("model", "gpt-4o-mini-transcribe"); err != nil {
 		return "", "", fmt.Errorf("failed to write model field: %v", err)
 	}
 	if err = writer.Close(); err != nil {
 		return "", "", fmt.Errorf("failed to close writer: %v", err)
 	}
 
-	// Build the Whisper API request
-	whisperURL := "https://api.openai.com/v1/audio/transcriptions"
-	whisperReq, err := http.NewRequest("POST", whisperURL, &b)
+	// Build the transcription API request
+	transcriptionURL := "https://api.openai.com/v1/audio/transcriptions"
+	transcriptionReq, err := http.NewRequest("POST", transcriptionURL, &b)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to create whisper request: %v", err)
+		return "", "", fmt.Errorf("failed to create transcription request: %v", err)
 	}
-	whisperReq.Header.Set("Content-Type", writer.FormDataContentType())
-	whisperReq.Header.Set("Authorization", "Bearer "+openAiApiKey)
+	transcriptionReq.Header.Set("Content-Type", writer.FormDataContentType())
+	transcriptionReq.Header.Set("Authorization", "Bearer "+openAiApiKey)
 
 	httpClient := &http.Client{Timeout: 30 * time.Second}
-	whisperResp, err := httpClient.Do(whisperReq)
+	transcriptionResp, err := httpClient.Do(transcriptionReq)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to perform whisper request: %v", err)
+		return "", "", fmt.Errorf("failed to perform transcription request: %v", err)
 	}
-	defer whisperResp.Body.Close()
+	defer transcriptionResp.Body.Close()
 
-	if whisperResp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(whisperResp.Body)
-		return "", "", fmt.Errorf("whisper API error: %s", string(bodyBytes))
+	if transcriptionResp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(transcriptionResp.Body)
+		return "", "", fmt.Errorf("transcription API error: %s", string(bodyBytes))
 	}
 
 	// Parse the transcription response (expected JSON: { "text": "..." })
-	var whisperResult struct {
+	var transcriptionResult struct {
 		Text string `json:"text"`
 	}
-	if err := json.NewDecoder(whisperResp.Body).Decode(&whisperResult); err != nil {
-		return "", "", fmt.Errorf("failed to decode whisper response: %v", err)
+	if err := json.NewDecoder(transcriptionResp.Body).Decode(&transcriptionResult); err != nil {
+		return "", "", fmt.Errorf("failed to decode transcription response: %v", err)
 	}
-	transcription := whisperResult.Text
+	transcription := transcriptionResult.Text
 
 	// --- Call ChatGPT API for ASCII text response ---
 	chatPayload := map[string]interface{}{
