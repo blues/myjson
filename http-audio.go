@@ -43,6 +43,7 @@ type AudioResponse struct {
 	Id          uint64 `json:"id,omitempty"`
 	ContentType string `json:"content,omitempty"`
 	Offset      int    `json:"offset,omitempty"`
+	Voice       string `json:"voice,omitempty"`
 	Last        bool   `json:"last,omitempty"`
 	Request     string `json:"request,omitempty"`
 	Response    string `json:"response,omitempty"`
@@ -479,18 +480,20 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 	// If this last segment requested an audio reply, send it before the final reply
 	if request.ContentType == c2ContentType {
 
-		// Convert the response to WAV
-		var pcm24kDataResponse []byte
-		pcm24kDataResponse, err = getPCM24KFromResponse(openAiApiKey, request.Voice, response.Response)
-		if err != nil {
-			return err
+		// https://platform.openai.com/docs/guides/text-to-speech
+		// The voices currently supported by this model are:
+		voice := request.Voice
+		if voice == "" {
+			voices := []string{"alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"}
+			voice = voices[rand.Intn(len(voices))]
+			fmt.Printf("using voice %s\n", voice)
 		}
 
-		// For debugging, write a wav file
-		wavData, err := PCMToWAV(pcm24kDataResponse, 16, 24000)
-		if err == nil {
-			os.WriteFile(configDataDirectory+"audio/reply24k.wav", wavData, 0644)
-			fmt.Printf("https://myjson.live/%s\n", "audio/reply24k.wav")
+		// Convert the response to WAV
+		var pcm24kDataResponse []byte
+		pcm24kDataResponse, err = getPCM24KFromResponse(openAiApiKey, voice, response.Response)
+		if err != nil {
+			return err
 		}
 
 		// Convert the PCM24k to PCM8K
@@ -500,17 +503,24 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			return err
 		}
 
-		// For debugging, write a wav file
-		wavData, err = PCMToWAV(pcm8kDataResponse, 16, 8000)
-		if err == nil {
-			os.WriteFile(configDataDirectory+"audio/reply8k.wav", wavData, 0644)
-			fmt.Printf("https://myjson.live/%s\n", "audio/reply8k.wav")
-		}
-
 		// Convert the PCM8K to codec2
 		c2DataResponse, err := PCM8KToC2(pcm8kDataResponse)
 		if err != nil {
 			return err
+		}
+
+		// For debugging, write a wav file
+		wavDataResponse, err := PCMToWAV(pcm8kDataResponse, 16, 8000)
+		if err == nil {
+			filename := "audio/reply.raw"
+			os.WriteFile(configDataDirectory+filename, pcm8kDataResponse, 0644)
+			fmt.Printf("https://myjson.live/%s\n", filename)
+			filename = "audio/reply.wav"
+			os.WriteFile(configDataDirectory+filename, wavDataResponse, 0644)
+			fmt.Printf("https://myjson.live/%s\n", filename)
+			filename = "audio/reply.c2"
+			os.WriteFile(configDataDirectory+filename, c2DataResponse, 0644)
+			fmt.Printf("https://myjson.live/%s\n", filename)
 		}
 
 		// Send potentially-numerous chunks to the Notecard
@@ -536,6 +546,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			var rsp AudioResponse
 			rsp.Id = request.Id
 			rsp.Offset = offset
+			rsp.Voice = voice
 			rsp.ContentType = c2ContentType
 			rspJSON, err := note.ObjectToJSON(rsp)
 			if err != nil {
@@ -736,13 +747,6 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 // getPCM24KFromResponse converts text (from the ChatGPT response) back into audio using OpenAI’s Text-to-Speech API.
 func getPCM24KFromResponse(openAiApiKey string, voice string, text string) (wavData []byte, err error) {
 	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
-	// https://platform.openai.com/docs/guides/text-to-speech
-	// The voices currently supported by this model are:
-	voices := []string{"alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"}
-	if voice == "" {
-		voice = voices[rand.Intn(len(voices))]
-		fmt.Printf("using voice %s\n", voice)
-	}
 	payload := map[string]interface{}{
 		"input":           text,
 		"response_format": "pcm",
