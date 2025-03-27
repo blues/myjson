@@ -43,7 +43,6 @@ type AudioResponse struct {
 	Last        bool   `json:"last,omitempty"`
 	Request     string `json:"request,omitempty"`
 	Response    string `json:"response,omitempty"`
-	Payload     []byte `json:"payload,omitempty"`
 }
 
 const c2ContentType = "audio/codec2-2400;rate=8000"
@@ -520,7 +519,6 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 
 			var rsp AudioResponse
 			rsp.Id = request.Id
-			rsp.Payload = chunk
 			rsp.Offset = offset
 			rsp.ContentType = c2ContentType
 			rspJSON, err := note.ObjectToJSON(rsp)
@@ -534,6 +532,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			hubreq := notehub.HubRequest{}
 			hubreq.Req = "note.add"
 			hubreq.Body = &body
+			hubreq.Payload = &chunk
 			hubreq.NotefileID = responseNotefileID
 			hubreq.AppUID = event.AppUID
 			hubreq.DeviceUID = event.DeviceUID
