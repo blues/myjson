@@ -694,10 +694,8 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 	chatPayload := map[string]interface{}{
 		"model": "gpt-3.5-turbo",
 		"messages": []map[string]string{
-			{
-				"role":    "user",
-				"content": transcription,
-			},
+			{"role": "system", "content": "Answer as briefly as possible."},
+			{"role": "user", "content": transcription},
 		},
 	}
 	payloadBytes, err := json.Marshal(chatPayload)
