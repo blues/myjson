@@ -760,52 +760,6 @@ func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err e
 	return wavData, nil
 }
 
-// WAVToPCM8k converts WAV data to a PCM []byte array at 8kHz.
-// It decodes the WAV, and if the sample rate is not 8000, uses linear interpolation to downsample.
-func WAVToPCM8k(wavData []byte) ([]byte, error) {
-	r := bytes.NewReader(wavData)
-	decoder := wav.NewDecoder(r)
-	if !decoder.IsValidFile() {
-		return nil, fmt.Errorf("invalid WAV file")
-	}
-	buf, err := decoder.FullPCMBuffer()
-	if err != nil {
-		return nil, err
-	}
-	// Ensure we have an IntBuffer.
-	intBuf := buf.AsIntBuffer()
-	inputRate := intBuf.Format.SampleRate
-
-	var resampled []int
-	if inputRate == 8000 {
-		resampled = intBuf.Data
-	} else {
-		resampled = resampleLinear(intBuf.Data, int(inputRate), 8000)
-	}
-	pcmBytes := make([]byte, len(resampled)*2)
-	for i, sample := range resampled {
-		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
-	}
-	return pcmBytes, nil
-}
-
-// resampleLinear performs a simple linear interpolation to convert sample rate.
-func resampleLinear(samples []int, srcRate int, dstRate int) []int {
-	newLength := int(float64(len(samples)) * float64(dstRate) / float64(srcRate))
-	resampled := make([]int, newLength)
-	for i := 0; i < newLength; i++ {
-		srcIndex := float64(i) * float64(srcRate) / float64(dstRate)
-		indexInt := int(srcIndex)
-		frac := srcIndex - float64(indexInt)
-		if indexInt+1 < len(samples) {
-			resampled[i] = int(float64(samples[indexInt])*(1-frac) + float64(samples[indexInt+1])*frac)
-		} else {
-			resampled[i] = samples[indexInt]
-		}
-	}
-	return resampled
-}
-
 // PCMToC2 converts a raw 16-bit PCM []byte (mono, little-endian) into Codec2 encoded data.
 // If the length of pcmData is not a multiple of codec2.SamplesPerFrame*2, it zero-fills the remaining bytes.
 func PCMToC2(pcmData []byte) ([]byte, error) {
@@ -837,4 +791,59 @@ func PCMToC2(pcmData []byte) ([]byte, error) {
 		c2Data = append(c2Data, encodedFrame...)
 	}
 	return c2Data, nil
+}
+
+func WAVToPCM8k(wavData []byte) ([]byte, error) {
+	fmt.Printf("Input WAV data length: %d bytes\n", len(wavData))
+	r := bytes.NewReader(wavData)
+	decoder := wav.NewDecoder(r)
+	if !decoder.IsValidFile() {
+		return nil, fmt.Errorf("invalid WAV file")
+	}
+	// Print available decoder properties (BitsPerSample was removed as it's not defined)
+	fmt.Printf("Decoder is valid. SampleRate: %d, NumChans: %d\n", decoder.SampleRate, decoder.NumChans)
+
+	buf, err := decoder.FullPCMBuffer()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Decoded PCM buffer length: %d samples\n", len(buf.Data))
+
+	// Convert to an integer buffer (if needed)
+	intBuf := buf.AsIntBuffer()
+	fmt.Printf("IntBuffer: %d samples at %d Hz\n", len(intBuf.Data), intBuf.Format.SampleRate)
+	inputRate := intBuf.Format.SampleRate
+
+	var resampled []int
+	if inputRate == 8000 {
+		resampled = intBuf.Data
+		fmt.Printf("No resampling needed.\n")
+	} else {
+		resampled = resampleLinear(intBuf.Data, int(inputRate), 8000)
+		fmt.Printf("Resampled from %d samples to %d samples\n", len(intBuf.Data), len(resampled))
+	}
+
+	pcmBytes := make([]byte, len(resampled)*2)
+	for i, sample := range resampled {
+		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
+	}
+	fmt.Printf("Final PCM output length: %d bytes\n", len(pcmBytes))
+	return pcmBytes, nil
+}
+
+func resampleLinear(samples []int, srcRate int, dstRate int) []int {
+	newLength := int(float64(len(samples)) * float64(dstRate) / float64(srcRate))
+	fmt.Printf("Resampling: original samples: %d, new sample count: %d\n", len(samples), newLength)
+	resampled := make([]int, newLength)
+	for i := 0; i < newLength; i++ {
+		srcIndex := float64(i) * float64(srcRate) / float64(dstRate)
+		indexInt := int(srcIndex)
+		frac := srcIndex - float64(indexInt)
+		if indexInt+1 < len(samples) {
+			resampled[i] = int(float64(samples[indexInt])*(1-frac) + float64(samples[indexInt+1])*frac)
+		} else {
+			resampled[i] = samples[indexInt]
+		}
+	}
+	return resampled
 }
