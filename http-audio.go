@@ -232,7 +232,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 	}
 
 	// Convert PCM8K data to WAV
-	wavData, err := PCM8KToWAV(pcmData, 16, rate)
+	wavData, err := PCMToWAV(pcmData, 16, rate)
 	if err != nil {
 		errmsg := fmt.Sprintf("can't convert to wav: %s", err)
 		fmt.Printf("audio: %s\n", errmsg)
@@ -374,10 +374,10 @@ func C2ToPCM8K(c2data []byte, rate int) (pcmData []byte, err error) {
 	return pcmData, nil
 }
 
-// PCM8KToWAV converts a PCM8K payload (little-endian, mono, 16-bit) to a WAV file in memory.
+// PCMToWAV converts a PCM8K payload (little-endian, mono, 16-bit) to a WAV file in memory.
 // It takes the PCM8K data as a byte slice, the bit depth (e.g. 16), and the sample rate (e.g. 8000),
 // and returns the WAV data as a byte slice.
-func PCM8KToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
+func PCMToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
 	// For 16-bit PCM8K, each sample is 2 bytes.
 	if len(pcmData)%(bitDepth/8) != 0 {
 		return nil, fmt.Errorf("invalid PCM8K data length: must be a multiple of %d", bitDepth/8)
@@ -448,7 +448,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 	if err != nil {
 		return err
 	}
-	wavData, err := PCM8KToWAV(pcmData, 16, rate)
+	wavData, err := PCMToWAV(pcmData, 16, rate)
 	if err != nil {
 		return err
 	}
@@ -477,32 +477,38 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 	if request.ContentType == c2ContentType {
 
 		// Convert the response to WAV
-		var wavDataResponse []byte
-		wavDataResponse, err = getPCM24KFromResponse(openAiApiKey, "coral", response.Response)
-		if err != nil {
-			return err
-		}
-
-		// Convert the PCM24k to PCM8K
-		var pcmDataResponse []byte
-		pcmDataResponse, err = PCM24KToPCM8K(wavDataResponse)
+		var pcm24kDataResponse []byte
+		pcm24kDataResponse, err = getPCM24KFromResponse(openAiApiKey, "coral", response.Response)
 		if err != nil {
 			return err
 		}
 
 		// For debugging, write a wav file
-		wavData, err := PCM8KToWAV(pcmDataResponse, 16, rate)
+		wavData, err := PCMToWAV(pcm24kDataResponse, 16, 24000)
 		if err == nil {
-			os.WriteFile(configDataDirectory+"audio/reply.wav", wavData, 0644)
-			fmt.Printf("https://myjson.live/%s\n", "audio/reply.wav")
+			os.WriteFile(configDataDirectory+"audio/reply24k.wav", wavData, 0644)
+			fmt.Printf("https://myjson.live/%s\n", "audio/reply8k.wav")
 		}
 
-		// Convert the PCM8K to codec2
-		c2DataResponse, err := PCM8KToC2(pcmDataResponse)
+		// Convert the PCM24k to PCM8K
+		var pcm8kDataResponse []byte
+		pcm8kDataResponse, err = PCM24KToPCM8K(pcm24kDataResponse)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("audio: response WAV/PCM8K/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
+
+		// For debugging, write a wav file
+		wavData, err = PCMToWAV(pcm8kDataResponse, 16, 8000)
+		if err == nil {
+			os.WriteFile(configDataDirectory+"audio/reply8k.wav", wavData, 0644)
+			fmt.Printf("https://myjson.live/%s\n", "audio/reply8k.wav")
+		}
+
+		// Convert the PCM8K to codec2
+		c2DataResponse, err := PCM8KToC2(pcm8kDataResponse)
+		if err != nil {
+			return err
+		}
 
 		// Send potentially-numerous chunks to the Notecard
 		maxChunkSize := request.ReplyMax
