@@ -216,7 +216,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			return
 		}
 		c2data = pcmData
-		pcmData, err = C2ToPCM(c2data, rate)
+		pcmData, err = C2ToPCM8K(c2data, rate)
 		if err != nil {
 			errmsg := fmt.Sprintf("can't convert codec2 to pcm: %s", err)
 			fmt.Printf("audio: %s\n", errmsg)
@@ -232,8 +232,8 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 		return
 	}
 
-	// Convert PCM data to WAV
-	wavData, err := PCMToWAV(pcmData, 16, rate)
+	// Convert PCM8K data to WAV
+	wavData, err := PCM8KToWAV(pcmData, 16, rate)
 	if err != nil {
 		errmsg := fmt.Sprintf("can't convert to wav: %s", err)
 		fmt.Printf("audio: %s\n", errmsg)
@@ -349,8 +349,8 @@ func (m *MemWriteSeeker) Bytes() []byte {
 	return m.buf
 }
 
-// C2ToPCM converts a Codec2 payload to PCM (16-bit, little-endian) in memory.
-func C2ToPCM(c2data []byte, rate int) (pcmData []byte, err error) {
+// C2ToPCM8K converts a Codec2 payload to PCM8K (16-bit, little-endian) in memory.
+func C2ToPCM8K(c2data []byte, rate int) (pcmData []byte, err error) {
 	codec, err := codec2.NewCodec2()
 	if err != nil {
 		return nil, err
@@ -375,19 +375,19 @@ func C2ToPCM(c2data []byte, rate int) (pcmData []byte, err error) {
 	return pcmData, nil
 }
 
-// PCMToWAV converts a PCM payload (little-endian, mono, 16-bit) to a WAV file in memory.
-// It takes the PCM data as a byte slice, the bit depth (e.g. 16), and the sample rate (e.g. 8000),
+// PCM8KToWAV converts a PCM8K payload (little-endian, mono, 16-bit) to a WAV file in memory.
+// It takes the PCM8K data as a byte slice, the bit depth (e.g. 16), and the sample rate (e.g. 8000),
 // and returns the WAV data as a byte slice.
-func PCMToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
-	// For 16-bit PCM, each sample is 2 bytes.
+func PCM8KToWAV(pcmData []byte, bitDepth int, sampleRate int) ([]byte, error) {
+	// For 16-bit PCM8K, each sample is 2 bytes.
 	if len(pcmData)%(bitDepth/8) != 0 {
-		return nil, fmt.Errorf("invalid PCM data length: must be a multiple of %d", bitDepth/8)
+		return nil, fmt.Errorf("invalid PCM8K data length: must be a multiple of %d", bitDepth/8)
 	}
 
 	numSamples := len(pcmData) / (bitDepth / 8)
 	samples := make([]int, numSamples)
 
-	// Convert each sample from PCM (assuming 16-bit little-endian).
+	// Convert each sample from PCM8K (assuming 16-bit little-endian).
 	for i := 0; i < numSamples; i++ {
 		offset := i * 2
 		sample := int16(binary.LittleEndian.Uint16(pcmData[offset : offset+2]))
@@ -445,11 +445,11 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 
 	// Read the C2 data from the payload, and convert it to WAV
 	rate := 8000
-	pcmData, err := C2ToPCM(c2Data, rate)
+	pcmData, err := C2ToPCM8K(c2Data, rate)
 	if err != nil {
 		return err
 	}
-	wavData, err := PCMToWAV(pcmData, 16, rate)
+	wavData, err := PCM8KToWAV(pcmData, 16, rate)
 	if err != nil {
 		return err
 	}
@@ -479,24 +479,24 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 
 		// Convert the response to WAV
 		var wavDataResponse []byte
-		wavDataResponse, err = getWavFromResponse(openAiApiKey, response.Response)
+		wavDataResponse, err = getPCM24KFromResponse(openAiApiKey, "coral", response.Response)
 		if err != nil {
 			return err
 		}
 
-		// Convert the wav to PCM
+		// Convert the PCM24k to PCM8K
 		var pcmDataResponse []byte
-		pcmDataResponse, err = WAVToPCM8k(wavDataResponse)
+		pcmDataResponse, err = PCM24KToPCM8K(wavDataResponse)
 		if err != nil {
 			return err
 		}
 
-		// Convert the PCM to codec2
-		c2DataResponse, err := PCMToC2(pcmDataResponse)
+		// Convert the PCM8K to codec2
+		c2DataResponse, err := PCM8KToC2(pcmDataResponse)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("audio: response WAV/PCM/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
+		fmt.Printf("audio: response WAV/PCM8K/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
 
 		// Send potentially-numerous chunks to the Notecard
 		maxChunkSize := request.ReplyMax
@@ -717,14 +717,14 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 	return transcription, asciiResponse, nil
 }
 
-// getWavFromResponse converts text (from the ChatGPT response) back into WAV audio using OpenAI’s Text-to-Speech API.
-func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err error) {
+// getPCM24KFromResponse converts text (from the ChatGPT response) back into audio using OpenAI’s Text-to-Speech API.
+func getPCM24KFromResponse(openAiApiKey string, voice string, text string) (wavData []byte, err error) {
 	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
 	payload := map[string]interface{}{
 		"input":           text,
-		"response_format": "wav",
+		"response_format": "pcm16",
 		"model":           "gpt-4o-mini-tts",
-		"voice":           "coral",
+		"voice":           voice,
 		"instructions":    "Speak in a cheerful and positive tone.",
 	}
 	payloadBytes, err := json.Marshal(payload)
@@ -760,9 +760,9 @@ func getWavFromResponse(openAiApiKey string, text string) (wavData []byte, err e
 	return wavData, nil
 }
 
-// PCMToC2 converts a raw 16-bit PCM []byte (mono, little-endian) into Codec2 encoded data.
+// PCM8KToC2 converts a raw 16-bit PCM8K []byte (mono, little-endian) into Codec2 encoded data.
 // If the length of pcmData is not a multiple of codec2.SamplesPerFrame*2, it zero-fills the remaining bytes.
-func PCMToC2(pcmData []byte) ([]byte, error) {
+func PCM8KToC2(pcmData []byte) ([]byte, error) {
 	codec, err := codec2.NewCodec2()
 	if err != nil {
 		return nil, err
@@ -793,58 +793,27 @@ func PCMToC2(pcmData []byte) ([]byte, error) {
 	return c2Data, nil
 }
 
-func WAVToPCM8k(wavData []byte) ([]byte, error) {
-	fmt.Printf("Input WAV data length: %d bytes\n", len(wavData))
-	if len(wavData) < 44 {
-		return nil, fmt.Errorf("WAV data too short to be valid")
+// PCM24KToPCM8K takes raw PCM16 data (16-bit, mono, little-endian) at inRate Hz
+// and resamples it to 8 kHz.
+func PCM24KToPCM8K(pcmData []byte) ([]byte, error) {
+	inRate := 24000
+	numSamples := len(pcmData) / 2
+	samples := make([]int, numSamples)
+	for i := 0; i < numSamples; i++ {
+		sample := int(int16(binary.LittleEndian.Uint16(pcmData[i*2 : i*2+2])))
+		samples[i] = sample
 	}
-	fmt.Printf("WAV header (first 64 bytes): % x\n", wavData[:64])
-
-	r := bytes.NewReader(wavData)
-	decoder := wav.NewDecoder(r)
-	if !decoder.IsValidFile() {
-		return nil, fmt.Errorf("invalid WAV file")
+	resampled := resampleLinear(samples, inRate, 8000)
+	outPCM := make([]byte, len(resampled)*2)
+	for i, s := range resampled {
+		binary.LittleEndian.PutUint16(outPCM[i*2:], uint16(s))
 	}
-	fmt.Printf("Decoder is valid.\n")
-	fmt.Printf("  SampleRate: %d\n", decoder.SampleRate)
-	fmt.Printf("  NumChans: %d\n", decoder.NumChans)
-
-	buf, err := decoder.FullPCMBuffer()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("Decoded PCM buffer length: %d samples\n", len(buf.Data))
-	fmt.Printf("Buffer Format: %+v\n", buf.Format)
-
-	// If there are no samples, warn about missing data chunk.
-	if len(buf.Data) == 0 {
-		return nil, fmt.Errorf("decoded PCM buffer is empty; check WAV file data chunk")
-	}
-
-	intBuf := buf.AsIntBuffer()
-	fmt.Printf("IntBuffer: %d samples at %d Hz\n", len(intBuf.Data), intBuf.Format.SampleRate)
-	inputRate := intBuf.Format.SampleRate
-
-	var resampled []int
-	if inputRate == 8000 {
-		resampled = intBuf.Data
-		fmt.Printf("No resampling needed.\n")
-	} else {
-		resampled = resampleLinear(intBuf.Data, int(inputRate), 8000)
-		fmt.Printf("Resampled from %d samples to %d samples\n", len(intBuf.Data), len(resampled))
-	}
-
-	pcmBytes := make([]byte, len(resampled)*2)
-	for i, sample := range resampled {
-		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
-	}
-	fmt.Printf("Final PCM output length: %d bytes\n", len(pcmBytes))
-	return pcmBytes, nil
+	return outPCM, nil
 }
 
+// Resample data linear
 func resampleLinear(samples []int, srcRate int, dstRate int) []int {
 	newLength := int(float64(len(samples)) * float64(dstRate) / float64(srcRate))
-	fmt.Printf("Resampling: original samples: %d, new sample count: %d\n", len(samples), newLength)
 	resampled := make([]int, newLength)
 	for i := 0; i < newLength; i++ {
 		srcIndex := float64(i) * float64(srcRate) / float64(dstRate)
