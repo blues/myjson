@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/rand"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -35,6 +36,7 @@ type AudioRequest struct {
 	ContentType string `json:"content,omitempty"`
 	Offset      int    `json:"offset,omitempty"`
 	Last        bool   `json:"last,omitempty"`
+	Voice       string `json:"voice,omitempty"`
 	ReplyMax    int    `json:"reply_max,omitempty"`
 }
 type AudioResponse struct {
@@ -479,7 +481,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 
 		// Convert the response to WAV
 		var pcm24kDataResponse []byte
-		pcm24kDataResponse, err = getPCM24KFromResponse(openAiApiKey, "coral", response.Response)
+		pcm24kDataResponse, err = getPCM24KFromResponse(openAiApiKey, request.Voice, response.Response)
 		if err != nil {
 			return err
 		}
@@ -734,6 +736,13 @@ func getTextRequestResponseFromWav(openAiApiKey string, wavData []byte) (request
 // getPCM24KFromResponse converts text (from the ChatGPT response) back into audio using OpenAI’s Text-to-Speech API.
 func getPCM24KFromResponse(openAiApiKey string, voice string, text string) (wavData []byte, err error) {
 	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
+	// https://platform.openai.com/docs/guides/text-to-speech
+	// The voices currently supported by this model are:
+	voices := []string{"alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"}
+	if voice == "" {
+		voice = voices[rand.Intn(len(voices))]
+		fmt.Printf("using voice %s\n", voice)
+	}
 	payload := map[string]interface{}{
 		"input":           text,
 		"response_format": "pcm",
