@@ -722,7 +722,7 @@ func getPCM24KFromResponse(openAiApiKey string, voice string, text string) (wavD
 	// Build the JSON payload as per the OpenAI API Reference for createSpeech.
 	payload := map[string]interface{}{
 		"input":           text,
-		"response_format": "pcm16",
+		"response_format": "pcm",
 		"model":           "gpt-4o-mini-tts",
 		"voice":           voice,
 		"instructions":    "Speak in a cheerful and positive tone.",
