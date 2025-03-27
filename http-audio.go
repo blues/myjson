@@ -490,6 +490,13 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			return err
 		}
 
+		// For debugging, write a wav file
+		wavData, err := PCM8KToWAV(pcmData, 16, rate)
+		if err == nil {
+			os.WriteFile(configDataDirectory+"audio/reply.wav", wavData, 0644)
+			fmt.Printf("https://myjson.live/%s\n", "audio/reply.wav")
+		}
+
 		// Convert the PCM8K to codec2
 		c2DataResponse, err := PCM8KToC2(pcmDataResponse)
 		if err != nil {
