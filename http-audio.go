@@ -30,15 +30,23 @@ import (
 
 // Protocol of the "body" field in Events
 type AudioRequest struct {
-	Id     uint64 `json:"id"`
-	Offset int    `json:"offset"`
-	Last   bool   `json:"last"`
+	Id          uint64 `json:"id,omitempty"`
+	ContentType string `json:"content,omitempty"`
+	Offset      int    `json:"offset,omitempty"`
+	Last        bool   `json:"last,omitempty"`
+	ReplyMax    int    `json:"reply_max,omitempty"`
 }
 type AudioResponse struct {
-	Id       uint64 `json:"id"`
-	Request  string `json:"request"`
-	Response string `json:"response"`
+	Id          uint64 `json:"id,omitempty"`
+	ContentType string `json:"content,omitempty"`
+	Offset      int    `json:"offset,omitempty"`
+	Last        bool   `json:"last,omitempty"`
+	Request     string `json:"request,omitempty"`
+	Response    string `json:"response,omitempty"`
+	Payload     []byte `json:"payload,omitempty"`
 }
+
+const c2ContentType = "audio/codec2-2400;rate=8000"
 
 // Cache of audio data being uploaded, indexed by deviceUID
 var audioCache map[string][]byte = map[string][]byte{}
@@ -146,6 +154,7 @@ func inboundWebAudioHandler(httpRsp http.ResponseWriter, httpReq *http.Request) 
 			httpRsp.WriteHeader(http.StatusOK)
 			return
 		}
+
 		c2Data = audioCache[event.DeviceUID]
 		delete(audioCache, event.DeviceUID)
 		fmt.Printf("audio: %s: processing %d bytes\n", event.DeviceUID, len(c2Data))
@@ -465,27 +474,92 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		return err
 	}
 
-	// Convert the response to WAV
-	var wavDataResponse []byte
-	wavDataResponse, err = getWavFromResponse(openAiApiKey, response.Response)
-	if err != nil {
-		return err
+	// If this last segment requested an audio reply, send it before the final reply
+	if request.ContentType == c2ContentType {
+
+		// Convert the response to WAV
+		var wavDataResponse []byte
+		wavDataResponse, err = getWavFromResponse(openAiApiKey, response.Response)
+		if err != nil {
+			return err
+		}
+
+		// Convert the wav to PCM
+		var pcmDataResponse []byte
+		pcmDataResponse, err = WAVToPCM8k(wavDataResponse)
+		if err != nil {
+			return err
+		}
+
+		// Convert the PCM to codec2
+		c2DataResponse, err := PCMToC2(pcmDataResponse)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("audio: response WAV/PCM/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
+
+		// Send potentially-numerous chunks to the Notecard
+		maxChunkSize := request.ReplyMax
+		if maxChunkSize == 0 {
+			maxChunkSize = 8192
+		}
+
+		// Send the chunked payload response to the Notecard, all intended to arrive
+		// before the final response containing the body
+		offset := 0
+		for {
+			chunk := c2DataResponse[:maxChunkSize]
+			c2DataResponse = c2DataResponse[maxChunkSize:]
+			if len(chunk) == 0 {
+				break
+			}
+
+			var rsp AudioResponse
+			rsp.Id = request.Id
+			rsp.Payload = chunk
+			rsp.Offset = offset
+			rsp.ContentType = c2ContentType
+			rspJSON, err := note.ObjectToJSON(rsp)
+			if err != nil {
+				return err
+			}
+			body, err := note.JSONToBody(rspJSON)
+			if err != nil {
+				return err
+			}
+			hubreq := notehub.HubRequest{}
+			hubreq.Req = "note.add"
+			hubreq.Body = &body
+			hubreq.NotefileID = responseNotefileID
+			hubreq.AppUID = event.AppUID
+			hubreq.DeviceUID = event.DeviceUID
+			hubreqJSON, err := note.JSONMarshal(hubreq)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("audio: request: %s\n", hubreqJSON)
+
+			hreq, _ := http.NewRequest("POST", "https://"+notehub.DefaultAPIService, bytes.NewBuffer(hubreqJSON))
+			hreq.Header.Set("User-Agent", "audio request processor")
+			hreq.Header.Set("Content-Type", "application/json")
+			hreq.Header.Set("X-Session-Token", responseApiToken)
+			httpClient := &http.Client{Timeout: time.Second * 10}
+			hrsp, err := httpClient.Do(hreq)
+			if err != nil {
+				return err
+			}
+			hubrspJSON, err := io.ReadAll(hrsp.Body)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("audio: response: len:%d %s\n", len(chunk), hubrspJSON)
+
+			offset += len(chunk)
+		}
+
 	}
 
-	// Convert to PCM
-	var pcmDataResponse []byte
-	pcmDataResponse, err = WAVToPCM8k(wavDataResponse)
-	if err != nil {
-		return err
-	}
-
-	c2DataResponse, err := PCMToC2(pcmDataResponse)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("audio: response WAV/PCM/C2 is %d/%d/%d bytes\n", len(wavDataResponse), len(pcmDataResponse), len(c2DataResponse))
-
-	// Convert the response to JSON
+	// Convert the (final) response to JSON
 	responseJSON, err := note.ObjectToJSON(response)
 	if err != nil {
 		return err
