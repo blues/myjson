@@ -44,6 +44,7 @@ type AudioResponse struct {
 	Id          uint64 `json:"id,omitempty"`
 	ContentType string `json:"content,omitempty"`
 	Offset      int    `json:"offset,omitempty"`
+	Total       int    `json:"total,omitempty"`
 	Voice       string `json:"voice,omitempty"`
 	Last        bool   `json:"last,omitempty"`
 	Request     string `json:"request,omitempty"`
