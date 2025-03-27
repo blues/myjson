@@ -44,6 +44,7 @@ type AudioResponse struct {
 	Id          uint64 `json:"id,omitempty"`
 	ContentType string `json:"content,omitempty"`
 	Offset      int    `json:"offset,omitempty"`
+	Length      int    `json:"length,omitempty"`
 	Total       int    `json:"total,omitempty"`
 	Voice       string `json:"voice,omitempty"`
 	Last        bool   `json:"last,omitempty"`
@@ -540,6 +541,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		// Send the chunked payload response to the Notecard, all intended to arrive
 		// before the final response containing the body
 		offset := 0
+		total := len(dataResponse)
 		for {
 			chunkSize := maxChunkSize
 			if len(dataResponse) < maxChunkSize {
@@ -554,6 +556,8 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			var rsp AudioResponse
 			rsp.Id = request.Id
 			rsp.Offset = offset
+			rsp.Length = len(chunk)
+			rsp.Total = total
 			rsp.Voice = voice
 			rsp.ContentType = request.ReplyContentType
 			rspJSON, err := note.ObjectToJSON(rsp)
