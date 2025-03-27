@@ -533,6 +533,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			hubreq.Req = "note.add"
 			hubreq.Body = &body
 			hubreq.Payload = &chunk
+			hubreq.Allow = true
 			hubreq.NotefileID = responseNotefileID
 			hubreq.AppUID = event.AppUID
 			hubreq.DeviceUID = event.DeviceUID
