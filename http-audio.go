@@ -32,12 +32,13 @@ import (
 
 // Protocol of the "body" field in Events
 type AudioRequest struct {
-	Id          uint64 `json:"id,omitempty"`
-	ContentType string `json:"content,omitempty"`
-	Offset      int    `json:"offset,omitempty"`
-	Last        bool   `json:"last,omitempty"`
-	Voice       string `json:"voice,omitempty"`
-	ReplyMax    int    `json:"reply_max,omitempty"`
+	Id               uint64 `json:"id,omitempty"`
+	ContentType      string `json:"content,omitempty"`
+	Offset           int    `json:"offset,omitempty"`
+	Last             bool   `json:"last,omitempty"`
+	Voice            string `json:"voice,omitempty"`
+	ReplyContentType string `json:"reply_content,omitempty"`
+	ReplyMax         int    `json:"reply_max,omitempty"`
 }
 type AudioResponse struct {
 	Id          uint64 `json:"id,omitempty"`
@@ -49,7 +50,8 @@ type AudioResponse struct {
 	Response    string `json:"response,omitempty"`
 }
 
-const c2ContentType = "audio/codec2-2400;rate=8000"
+const contentTypeC2 = "audio/codec2-2400;rate=8000"
+const contentTypePCM = "audio/L16;rate=8000"
 
 // Cache of audio data being uploaded, indexed by deviceUID
 var audioCache map[string][]byte = map[string][]byte{}
@@ -478,7 +480,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 	}
 
 	// If this last segment requested an audio reply, send it before the final reply
-	if request.ContentType == c2ContentType {
+	if request.ReplyContentType == contentTypeC2 || request.ReplyContentType == contentTypePCM {
 
 		// https://platform.openai.com/docs/guides/text-to-speech
 		// The voices currently supported by this model are:
@@ -504,9 +506,14 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		}
 
 		// Convert the PCM8K to codec2
-		c2DataResponse, err := PCM8KToC2(pcm8kDataResponse)
-		if err != nil {
-			return err
+		dataResponse := pcm8kDataResponse
+		var c2DataResponse []byte
+		if request.ReplyContentType == contentTypeC2 {
+			c2DataResponse, err = PCM8KToC2(pcm8kDataResponse)
+			if err != nil {
+				return err
+			}
+			dataResponse = c2DataResponse
 		}
 
 		// For debugging, write a wav file
@@ -534,20 +541,20 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		offset := 0
 		for {
 			chunkSize := maxChunkSize
-			if len(c2DataResponse) < maxChunkSize {
-				chunkSize = len(c2DataResponse)
+			if len(dataResponse) < maxChunkSize {
+				chunkSize = len(dataResponse)
 			}
 			if chunkSize == 0 {
 				break
 			}
 			var chunk []byte
-			chunk, c2DataResponse = c2DataResponse[:chunkSize], c2DataResponse[chunkSize:]
+			chunk, dataResponse = dataResponse[:chunkSize], dataResponse[chunkSize:]
 
 			var rsp AudioResponse
 			rsp.Id = request.Id
 			rsp.Offset = offset
 			rsp.Voice = voice
-			rsp.ContentType = c2ContentType
+			rsp.ContentType = request.ReplyContentType
 			rspJSON, err := note.ObjectToJSON(rsp)
 			if err != nil {
 				return err
