@@ -795,32 +795,36 @@ func PCMToC2(pcmData []byte) ([]byte, error) {
 
 func WAVToPCM8k(wavData []byte) ([]byte, error) {
 	fmt.Printf("Input WAV data length: %d bytes\n", len(wavData))
+	if len(wavData) < 44 {
+		return nil, fmt.Errorf("WAV data too short to be valid")
+	}
+	fmt.Printf("WAV header (first 64 bytes): % x\n", wavData[:64])
 
 	r := bytes.NewReader(wavData)
 	decoder := wav.NewDecoder(r)
 	if !decoder.IsValidFile() {
 		return nil, fmt.Errorf("invalid WAV file")
 	}
-
 	fmt.Printf("Decoder is valid.\n")
 	fmt.Printf("  SampleRate: %d\n", decoder.SampleRate)
 	fmt.Printf("  NumChans: %d\n", decoder.NumChans)
-	// Removed AudioFormat and DataChunkSize since they're undefined.
 
 	buf, err := decoder.FullPCMBuffer()
 	if err != nil {
 		return nil, err
 	}
 	fmt.Printf("Decoded PCM buffer length: %d samples\n", len(buf.Data))
-
-	// Print out the buffer format for extra context.
 	fmt.Printf("Buffer Format: %+v\n", buf.Format)
 
-	// Convert to an integer buffer for further processing.
+	// If there are no samples, warn about missing data chunk.
+	if len(buf.Data) == 0 {
+		return nil, fmt.Errorf("decoded PCM buffer is empty; check WAV file data chunk")
+	}
+
 	intBuf := buf.AsIntBuffer()
 	fmt.Printf("IntBuffer: %d samples at %d Hz\n", len(intBuf.Data), intBuf.Format.SampleRate)
-
 	inputRate := intBuf.Format.SampleRate
+
 	var resampled []int
 	if inputRate == 8000 {
 		resampled = intBuf.Data
