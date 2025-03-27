@@ -508,11 +508,15 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		// before the final response containing the body
 		offset := 0
 		for {
-			chunk := c2DataResponse[:maxChunkSize]
-			c2DataResponse = c2DataResponse[maxChunkSize:]
-			if len(chunk) == 0 {
+			chunkSize := maxChunkSize
+			if len(c2DataResponse) < maxChunkSize {
+				chunkSize = len(c2DataResponse)
+			}
+			if chunkSize == 0 {
 				break
 			}
+			var chunk []byte
+			chunk, c2DataResponse = c2DataResponse[:chunkSize], c2DataResponse[chunkSize:]
 
 			var rsp AudioResponse
 			rsp.Id = request.Id
@@ -768,14 +772,16 @@ func WAVToPCM8k(wavData []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	inputRate := decoder.SampleRate
+	// Ensure we have an IntBuffer.
+	intBuf := buf.AsIntBuffer()
+	inputRate := intBuf.Format.SampleRate
+
 	var resampled []int
 	if inputRate == 8000 {
-		resampled = buf.Data
+		resampled = intBuf.Data
 	} else {
-		resampled = resampleLinear(buf.Data, int(inputRate), 8000)
+		resampled = resampleLinear(intBuf.Data, int(inputRate), 8000)
 	}
-	// Convert the resampled integer samples into a []byte slice (16-bit little-endian)
 	pcmBytes := make([]byte, len(resampled)*2)
 	for i, sample := range resampled {
 		binary.LittleEndian.PutUint16(pcmBytes[i*2:], uint16(sample))
