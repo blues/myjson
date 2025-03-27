@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -487,7 +488,7 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		wavData, err := PCMToWAV(pcm24kDataResponse, 16, 24000)
 		if err == nil {
 			os.WriteFile(configDataDirectory+"audio/reply24k.wav", wavData, 0644)
-			fmt.Printf("https://myjson.live/%s\n", "audio/reply8k.wav")
+			fmt.Printf("https://myjson.live/%s\n", "audio/reply24k.wav")
 		}
 
 		// Convert the PCM24k to PCM8K
@@ -806,37 +807,115 @@ func PCM8KToC2(pcmData []byte) ([]byte, error) {
 	return c2Data, nil
 }
 
-// PCM24KToPCM8K takes raw PCM16 data (16-bit, mono, little-endian) at inRate Hz
-// and resamples it to 8 kHz.
+// PCM24KToPCM8K downsamples 16-bit PCM audio from 24kHz to 8kHz
+// pcmData is expected to be a byte slice containing 16-bit PCM samples
+// Returns the downsampled audio as a byte slice and an error if any
 func PCM24KToPCM8K(pcmData []byte) ([]byte, error) {
-	inRate := 24000
+	// Check if data length is valid (must be even for 16-bit samples)
+	if len(pcmData)%2 != 0 {
+		return nil, errors.New("invalid PCM data: length must be even")
+	}
+
+	// Convert bytes to int16 samples
 	numSamples := len(pcmData) / 2
-	samples := make([]int, numSamples)
+	samples := make([]int16, numSamples)
 	for i := 0; i < numSamples; i++ {
-		sample := int(int16(binary.LittleEndian.Uint16(pcmData[i*2 : i*2+2])))
-		samples[i] = sample
+		// Convert two bytes to one int16 sample (little-endian)
+		samples[i] = int16(pcmData[i*2]) | int16(pcmData[i*2+1])<<8
 	}
-	resampled := resampleLinear(samples, inRate, 8000)
-	outPCM := make([]byte, len(resampled)*2)
-	for i, s := range resampled {
-		binary.LittleEndian.PutUint16(outPCM[i*2:], uint16(s))
+
+	// Design a low-pass filter (FIR filter)
+	// Cutoff frequency: 3500 Hz (slightly below Nyquist for 8kHz)
+	filterOrder := 64 // Higher order = better quality but more CPU
+	filter := designLowPassFilter(filterOrder, 3500.0, 24000.0)
+
+	// Apply filter to prevent aliasing
+	filteredSamples := applyFilter(samples, filter)
+
+	// Decimate by factor of 3 (24kHz to 8kHz)
+	decimationFactor := 3
+	outputLength := numSamples / decimationFactor
+	outputSamples := make([]int16, outputLength)
+
+	for i := 0; i < outputLength; i++ {
+		outputSamples[i] = filteredSamples[i*decimationFactor]
 	}
-	return outPCM, nil
+
+	// Convert back to bytes
+	outputBytes := make([]byte, outputLength*2)
+	for i, sample := range outputSamples {
+		// Convert each int16 sample to two bytes (little-endian)
+		outputBytes[i*2] = byte(sample)
+		outputBytes[i*2+1] = byte(sample >> 8)
+	}
+
+	return outputBytes, nil
 }
 
-// Resample data linear
-func resampleLinear(samples []int, srcRate int, dstRate int) []int {
-	newLength := int(float64(len(samples)) * float64(dstRate) / float64(srcRate))
-	resampled := make([]int, newLength)
-	for i := 0; i < newLength; i++ {
-		srcIndex := float64(i) * float64(srcRate) / float64(dstRate)
-		indexInt := int(srcIndex)
-		frac := srcIndex - float64(indexInt)
-		if indexInt+1 < len(samples) {
-			resampled[i] = int(float64(samples[indexInt])*(1-frac) + float64(samples[indexInt+1])*frac)
+// designLowPassFilter creates a FIR low-pass filter using the windowed-sinc method
+func designLowPassFilter(order int, cutoffFreq, sampleRate float64) []float64 {
+	// Ensure odd filter order for symmetry
+	if order%2 == 0 {
+		order++
+	}
+
+	filter := make([]float64, order)
+
+	// Normalized cutoff frequency (0 to 0.5)
+	omega := 2.0 * math.Pi * cutoffFreq / sampleRate
+
+	// Calculate filter coefficients
+	halfOrder := order / 2
+	for i := 0; i < order; i++ {
+		// Sinc function
+		n := float64(i - halfOrder)
+		if n == 0 {
+			filter[i] = omega / math.Pi
 		} else {
-			resampled[i] = samples[indexInt]
+			filter[i] = math.Sin(omega*n) / (math.Pi * n)
+		}
+
+		// Apply Blackman window for better frequency response
+		filter[i] *= 0.42 - 0.5*math.Cos(2.0*math.Pi*float64(i)/float64(order-1)) +
+			0.08*math.Cos(4.0*math.Pi*float64(i)/float64(order-1))
+	}
+
+	// Normalize filter gain
+	sum := 0.0
+	for _, coeff := range filter {
+		sum += coeff
+	}
+	for i := range filter {
+		filter[i] /= sum
+	}
+
+	return filter
+}
+
+// applyFilter convolves the input samples with the filter coefficients
+func applyFilter(samples []int16, filter []float64) []int16 {
+	filterLength := len(filter)
+	samplesLength := len(samples)
+	result := make([]int16, samplesLength)
+
+	for i := 0; i < samplesLength; i++ {
+		var sum float64
+		for j := 0; j < filterLength; j++ {
+			// Use zero padding for samples outside the range
+			idx := i - j + filterLength/2
+			if idx >= 0 && idx < samplesLength {
+				sum += float64(samples[idx]) * filter[j]
+			}
+		}
+		// Convert back to int16 with proper rounding and clamping
+		if sum > 32767 {
+			result[i] = 32767
+		} else if sum < -32768 {
+			result[i] = -32768
+		} else {
+			result[i] = int16(math.Round(sum))
 		}
 	}
-	return resampled
+
+	return result
 }
