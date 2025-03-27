@@ -598,6 +598,10 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			fmt.Printf("audio: response: len:%d %s\n", len(chunk), hubrspJSON)
 
 			offset += len(chunk)
+
+			// Intentionally delay between chunks so that the notes on the receiving end are
+			// ordered correctly by epoch time.
+			time.Sleep(1500 * time.Millisecond)
 		}
 
 	}
