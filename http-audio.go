@@ -481,6 +481,48 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		return err
 	}
 
+	// If there is no reply needed, send the response now
+	if request.ReplyContentType == "" {
+
+		// Convert the (final) response to JSON
+		responseJSON, err := note.ObjectToJSON(response)
+		if err != nil {
+			return err
+		}
+		body, err := note.JSONToBody(responseJSON)
+		if err != nil {
+			return err
+		}
+
+		// Send the response to the app
+		hubreq := notehub.HubRequest{}
+		hubreq.Req = "note.add"
+		hubreq.Body = &body
+		hubreq.NotefileID = responseNotefileID
+		hubreq.AppUID = event.AppUID
+		hubreq.DeviceUID = event.DeviceUID
+		hubreqJSON, err := note.JSONMarshal(hubreq)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("audio: request: %s\n", hubreqJSON)
+
+		hreq, _ := http.NewRequest("POST", "https://"+notehub.DefaultAPIService, bytes.NewBuffer(hubreqJSON))
+		hreq.Header.Set("User-Agent", "audio request processor")
+		hreq.Header.Set("Content-Type", "application/json")
+		hreq.Header.Set("X-Session-Token", responseApiToken)
+		httpClient := &http.Client{Timeout: time.Second * 10}
+		hrsp, err := httpClient.Do(hreq)
+		if err != nil {
+			return err
+		}
+		hubrspJSON, err := io.ReadAll(hrsp.Body)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("audio: response: %s\n", hubrspJSON)
+	}
+
 	// If this last segment requested an audio reply, send it before the final reply
 	if request.ReplyContentType == contentTypeC2 || request.ReplyContentType == contentTypePCM {
 
@@ -560,6 +602,11 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 			rsp.Total = total
 			rsp.Voice = voice
 			rsp.ContentType = request.ReplyContentType
+			if len(dataResponse) == 0 {
+				rsp.Last = true
+				rsp.Request = response.Request
+				rsp.Response = response.Response
+			}
 			rspJSON, err := note.ObjectToJSON(rsp)
 			if err != nil {
 				return err
@@ -605,44 +652,6 @@ func processAudioRequest(httpReq *http.Request, event note.Event, request AudioR
 		}
 
 	}
-
-	// Convert the (final) response to JSON
-	responseJSON, err := note.ObjectToJSON(response)
-	if err != nil {
-		return err
-	}
-	body, err := note.JSONToBody(responseJSON)
-	if err != nil {
-		return err
-	}
-
-	// Send the response to the app
-	hubreq := notehub.HubRequest{}
-	hubreq.Req = "note.add"
-	hubreq.Body = &body
-	hubreq.NotefileID = responseNotefileID
-	hubreq.AppUID = event.AppUID
-	hubreq.DeviceUID = event.DeviceUID
-	hubreqJSON, err := note.JSONMarshal(hubreq)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("audio: request: %s\n", hubreqJSON)
-
-	hreq, _ := http.NewRequest("POST", "https://"+notehub.DefaultAPIService, bytes.NewBuffer(hubreqJSON))
-	hreq.Header.Set("User-Agent", "audio request processor")
-	hreq.Header.Set("Content-Type", "application/json")
-	hreq.Header.Set("X-Session-Token", responseApiToken)
-	httpClient := &http.Client{Timeout: time.Second * 10}
-	hrsp, err := httpClient.Do(hreq)
-	if err != nil {
-		return err
-	}
-	hubrspJSON, err := io.ReadAll(hrsp.Body)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("audio: response: %s\n", hubrspJSON)
 
 	// Done
 	return nil
