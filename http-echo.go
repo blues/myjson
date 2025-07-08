@@ -35,6 +35,7 @@ func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 			http.Error(httpRsp, "milliseconds must be positive", http.StatusBadRequest)
 			return
 		}
+		fmt.Printf("ECHO: delay %d ms\n", ms)
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 	}
 
