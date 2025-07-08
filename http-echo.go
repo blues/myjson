@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,6 +22,21 @@ var reset = true
 
 // Echo handler
 func inboundWebEchoHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
+
+	// See if a milliseconds delay is specified
+	const prefix = "/echo/"
+	if strings.HasPrefix(httpReq.URL.Path, prefix) {
+		msStr := strings.TrimPrefix(httpReq.URL.Path, prefix)
+		ms, err := strconv.Atoi(msStr)
+		if err != nil {
+			http.Error(httpRsp, fmt.Sprintf("%s", err), http.StatusBadRequest)
+			return
+		} else if ms <= 0 {
+			http.Error(httpRsp, "milliseconds must be positive", http.StatusBadRequest)
+			return
+		}
+		time.Sleep(time.Duration(ms) * time.Millisecond)
+	}
 
 	// Get the body if supplied
 	reqBody, err := io.ReadAll(httpReq.Body)
