@@ -69,9 +69,24 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 	if (method == "POST" || method == "PUT") && uploadFilename != "" {
 		if len(reqJSON) == 0 {
 			httpRsp.Write([]byte("error: zero-length file"))
-		} else {
-			httpRsp.Write(uploadFile(target+"/"+uploadFilename, append, reqJSON))
+			return
 		}
+		// Acknowledge the upload as quickly as possible and tear down the
+		// connection so the caller (e.g. a camera posting at ~1 fps) never
+		// waits on our local disk I/O. The request body has already been
+		// fully read into reqJSON, so we can safely hand the write off to
+		// a goroutine. Any write error is logged by uploadFile; the caller
+		// will not see it — that is the intentional trade-off.
+		body := []byte("ok\n")
+		httpRsp.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		httpRsp.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		httpRsp.Header().Set("Connection", "close")
+		httpRsp.WriteHeader(http.StatusOK)
+		httpRsp.Write(body)
+		if f, ok := httpRsp.(http.Flusher); ok {
+			f.Flush()
+		}
+		go uploadFile(target+"/"+uploadFilename, append, reqJSON)
 		return
 	}
 	if deleteFilename != "" {
@@ -177,8 +192,10 @@ func cleanFilename(in string) (out string, bad bool) {
 	return
 }
 
-// Upload a file
-func uploadFile(filename string, append bool, contents []byte) (result []byte) {
+// Upload a file. This runs on a background goroutine so the HTTP caller
+// does not wait on local disk I/O; any error is logged here and not
+// propagated back to the client.
+func uploadFile(filename string, append bool, contents []byte) {
 
 	pathname, bad := cleanFilename(filename)
 	if bad {
@@ -193,9 +210,9 @@ func uploadFile(filename string, append bool, contents []byte) (result []byte) {
 		os.MkdirAll(strings.Join(c[0:len(c)-1], "/"), 0777)
 		fileLock.Unlock()
 	}
-	var err error
 
 	fileLock.Lock()
+	defer fileLock.Unlock()
 
 	flags := os.O_CREATE | os.O_WRONLY
 	if append {
@@ -207,15 +224,9 @@ func uploadFile(filename string, append bool, contents []byte) (result []byte) {
 		f.Close()
 	}
 
-	fileLock.Unlock()
-
 	if err != nil {
-		fmt.Printf("  err: %s\n", err)
-		result = []byte(fmt.Sprintf("%s", err))
+		fmt.Printf("  upload err %s: %s\n", filename, err)
 	}
-
-	return
-
 }
 
 // Delete a file
