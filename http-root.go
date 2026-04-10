@@ -122,6 +122,19 @@ func inboundWebRootHandler(httpRsp http.ResponseWriter, httpReq *http.Request) {
 		return
 	}
 
+	// If the target is a directory containing image files, serve the
+	// auto-refreshing photo viewer (or, with ?latest=1, just the newest
+	// filename for the viewer's polling loop). Falls through to watch()
+	// below for non-image directories so JSON streams behave as before.
+	if method == "GET" && target != "" && !strings.Contains(rawTarget, "/") && isPhotoDirectory(target) {
+		if args["latest"] != "" {
+			photoLatest(httpRsp, target)
+		} else {
+			photoViewer(httpRsp, target)
+		}
+		return
+	}
+
 	if method == "GET" {
 		watch(httpRsp, httpReq, target)
 		return

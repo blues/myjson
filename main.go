@@ -35,6 +35,9 @@ func main() {
 	// Init our web request inbound server
 	go HTTPInboundHandler(":80")
 
+	// Periodically trim photo directories down to the latest configMaxPhotos
+	go purgePhotosLoop()
+
 	// Purge hourly
 	for {
 		targets := tailTargets()
